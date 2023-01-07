@@ -2,15 +2,14 @@
   "name": "runechess-server",
   "version": "1.0.0",
   "description": "npm init template for bootstrapping an empty Colyseus project",
-  "main": "lib/index.js",
+  "main": "index.js",
   "scripts": {
     "build": "tsc",
     "start": "node lib/index.js",
     "start:dev": "ts-node-dev --watch \"src/**/*\" --respawn --transpile-only src/index.ts ",
     "format:write": "prettier . --write",
     "format:check": "prettier --check .",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "generateCsharpSchemas": "npx schema-codegen src/game/game.state.ts --csharp --output ./schema --namespace Dinojump.Schemas"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "UNLICENSED",
