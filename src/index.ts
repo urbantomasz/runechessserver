@@ -19,12 +19,12 @@ import { Server } from "@colyseus/core";
 import { WebSocketTransport } from "@colyseus/ws-transport"
 import express from "express";
 import { GameRoom } from "./rooms/GameRoom";
-import { LobbyRoom } from "colyseus";
+import { LobbyRoom } from "./rooms/GameLobbyRoom";
 import { monitor } from "@colyseus/monitor";
 
 const server = createServer(); // create the http server manually
 const app = express()
-const port = 8080;
+const port = 2567;
 
 app.use('/colyseus', monitor())
 app.get('/', function (req, res) {
