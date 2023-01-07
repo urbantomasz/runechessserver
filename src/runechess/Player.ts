@@ -27,12 +27,11 @@ export class Player{
         let units = new Array<Unit>(
             new Mage(this.color, new Tile(startingRow, Column.A)),
             new Rogue(this.color, new Tile(startingRow, Column.B)),
-           // new Druid(this.color, new Tile(startingRow, Column.C)),
             new Knight(this.color, new Tile(startingRow, Column.C)),
             new King(this.color, new Tile(startingRow, Column.D)),
             new Princess(this.color, new Tile(startingRow, Column.E)),
-            new Knight(this.color, new Tile(startingRow, Column.F)),
-            new Priest(this.color, new Tile(startingRow, Column.G)),
+            new Priest(this.color, new Tile(startingRow, Column.F)),
+            new Knight(this.color, new Tile(startingRow, Column.G)),
             new Rogue(this.color, new Tile(startingRow, Column.H)),
             new Mage(this.color, new Tile(startingRow, Column.I)),
         )

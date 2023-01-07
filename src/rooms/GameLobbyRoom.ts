@@ -11,8 +11,12 @@ export class LobbyRoom extends Room<LobbyRoomSchema> {
 
     this.onMessage("JoinQueue", async (client, data) =>{
 
-      if(this.state.playersSearchingIds.includes(client.id)) return;
-      this.state.playersSearchingIds.push(client.id);
+      
+      if(this.state.playersSearchingIds.includes(client.id)){
+        this.IfExistsRemoveClientFromQueue(client);
+      } else{
+        this.state.playersSearchingIds.push(client.id);
+      }
 
     this.setSimulationInterval(() => this.redistributeGroups(), this.evaluateGroupsInterval);
     })
@@ -48,15 +52,17 @@ export class LobbyRoom extends Room<LobbyRoomSchema> {
   }
 
   onLeave(client: Client, consented: boolean) {
-    console.log(client.id, 'left ChatRoom');
-    let queueIndex = this.state.playersSearchingIds.indexOf(client.id);
-    if(queueIndex > -1){
-      this.state.playersSearchingIds.splice(queueIndex, 1);
-    }
-    this.state.players.delete(client.id)
+    this.IfExistsRemoveClientFromQueue(client);
   }
 
   onDispose() {
     console.log('Disposing the room');
+  }
+
+  IfExistsRemoveClientFromQueue(client: Client){
+    let queueIndex = this.state.playersSearchingIds.indexOf(client.id);
+    if(queueIndex > -1){
+      this.state.playersSearchingIds.splice(queueIndex, 1);
+    }
   }
 }
