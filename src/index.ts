@@ -24,7 +24,7 @@ import { monitor } from "@colyseus/monitor";
 
 const server = createServer(); // create the http server manually
 const app = express()
-const port = 2537;
+const port = 80;
 
 app.use('/colyseus', monitor())
 app.get('/', function (req, res) {
