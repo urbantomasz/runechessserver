@@ -53,6 +53,7 @@ export class LobbyRoom extends Room<LobbyRoomSchema> {
 
   onLeave(client: Client, consented: boolean) {
     this.IfExistsRemoveClientFromQueue(client);
+    this.state.players.delete(client.id);
   }
 
   onDispose() {
