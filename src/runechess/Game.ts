@@ -7,8 +7,9 @@ import { StateManager } from "./StateManager";
 import { AvailableCasts, SpellManager } from "./SpellManager";
 import { Color } from "./Enums";
 import { GameObject } from "./GameObject";
+import { IGame } from "./Interfaces";
 //todo move some subclasses to game maybe as interfaces or abstract classes 
-export class Game {
+export class Game implements IGame {
     public static BOARD_ROWS = 8;
     public static BOARD_COLUMNS = 9;
     private readonly _players: Player[];
@@ -23,15 +24,8 @@ export class Game {
         this._validator = new Validator(units, tiles);
         this._spellManager = new SpellManager(units, tiles, this._validator);
         this._stateManager = new StateManager(units, tiles, this._validator, this._spellManager);
+        
     };
-
-    // public TryCaptureUnit(selectedUnit: Unit, capturingUnit: Unit): void{
-    //     this._stateManager.TakeUnit(selectedUnit, capturingUnit);
-    // }
-
-    // public TryMoveUnit(selectedUnit: Unit, tile: Tile): void{
-    //     this._stateManager.MoveUnit(selectedUnit, tile);
-    // }
 
     public GetPlayerTurnColor(): Color{
         return this._stateManager.PlayerTurnColor;

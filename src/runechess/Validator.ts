@@ -1,9 +1,11 @@
 import { Tile } from "./Tile";
-import { Unit } from "./Unit";
+import { Princess, Unit } from "./Unit";
 import { rotateMatrix90 } from "./Helpers";
 import { globalEvent } from "@billjs/event-emitter";
 import { Game } from "./Game";
 import { Color, MoveType } from "./Enums";
+import { AvailableCasts, SpellManager } from "./SpellManager";
+import { Shadowstep } from "./Spell";
 
 export interface AvailableMoves{
     Tiles: Tile[]
@@ -11,12 +13,14 @@ export interface AvailableMoves{
 }
 
 export class Validator{
-    private _tiles: Tile[][];
-    private _units: Unit[];
+    private readonly _tiles: Tile[][];
+    private readonly _units: Unit[];
+    //private readonly _unitsAvailableCasts: Map<Unit, AvailableCasts>;
     private _unitsAvailableMoves: Map<Unit, AvailableMoves>;
     constructor(units: Unit[], tiles: Tile[][]) {
         this._units = units;
         this._tiles = tiles;
+        //this._unitsAvailableCasts = spellManager.UnitsAvailableCasts;
         this.updateUnitsAvailableMoves();
         globalEvent.on("TurnFinished", evt => this.updateUnitsAvailableMoves())
     }
@@ -39,6 +43,37 @@ export class Validator{
         this._unitsAvailableMoves = unitsAvailableMoves;
         globalEvent.fire("AvailableMovesUpdated");
     }
+
+    // private checkForCheck(): boolean{
+    //   let isCheck = false;
+    //   for (let availableMoves of this._unitsAvailableMoves.values()) {
+    //     if(availableMoves.Units.find(unit => unit instanceof Princess)){
+    //       isCheck = true;
+    //       break;
+    //     } 
+    //   }
+     
+
+    //   return isCheck;
+    // }
+
+ 
+    // private filterMovesToFreeFromCheck(): void{
+    //   // this.checkIfQueenHasMoves();
+    //   // this.checkIfQueenCanCastle();
+    //   // this.checkIfUnitsMoveCanSavePrincess();
+    // }
+    // private checkIfUnitsMoveCanSavePrincess(): boolean{
+    //   for (let [unit, moves] of this._unitsAvailableMoves) {
+    //   }
+    // }
+    // private checkForCheckmate(): boolean{
+    // // It's actually quite easy to check for a checkmate:
+
+    // // Can I move out of mate?
+    // // Can I block mate?
+    // // Can I take the attacker?
+    // }
 
     private getUnitAvailableMoves(unit: Unit, unitsOnBoard: Unit[], tilesOnBoard: Tile[][]): AvailableMoves {
         let movePattern = unit.movePattern;

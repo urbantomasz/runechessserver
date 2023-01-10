@@ -68,7 +68,6 @@ export class StateManager {
     public MoveUnit(unit: Unit, tile: Tile){
         if(unit instanceof Peasant && unit.color === Color.Blue && tile.row === Game.BOARD_ROWS-1 ||
             unit instanceof Peasant && unit.color === Color.Red && tile.row === 0){
-                console.log("jestem w srodku")
             let unitIndex = this._units.findIndex(u => u === unit);
             let king = new King(unit.color, new Tile(tile.row, tile.column))
             king.id = unit.id;

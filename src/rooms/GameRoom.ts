@@ -2,13 +2,14 @@ import { ArraySchema, MapSchema } from "@colyseus/schema";
 import { Room, Client } from "colyseus";
 import { Color } from "../runechess/Enums";
 import { Game } from "../runechess/Game";
+import { IGame } from "../runechess/Interfaces";
 import { AvailableCasts } from "../runechess/SpellManager";
 import { Unit } from "../runechess/Unit";
 import { AvailableMoves } from "../runechess/Validator";
 import { AvailableCastsSchema, AvailableMovesSchema, GameRoomState, TileSchema, UnitSchema } from "./schema/GameRoomState";
 
 export class GameRoom extends Room<GameRoomState> {
-  private _game: Game;
+  private _game: IGame;
   private _bluePlayerId: string = null;
   private _redPlayerId: string = null;
   private _isPlayground: boolean = false;
@@ -96,9 +97,13 @@ export class GameRoom extends Room<GameRoomState> {
       if(!this._isPlayground && !(client.id === (this._game.GetPlayerTurnColor() === Color.Blue ? this._bluePlayerId : this._redPlayerId))) return;
       if(this._game.TryCastingSpell(data.castingUnit, data.targetingUnit)){
         this.updateState();
-        this.broadcast("SpellCasted")
+        this.broadcast("SpellCasted");
       };
     })
+
+    this.onMessage("QueenCaptured", (client, data) =>{
+      this.broadcast("GameOver");
+    });
   }
 
   onLeave (client: Client, consented: boolean) {

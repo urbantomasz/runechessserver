@@ -76,6 +76,24 @@ export class SpellManager{
         })
     }
 
+    // public CheckForSpellCheck(): boolean{
+    //     let isSpellCheck = false;
+    //     for (let [unit, availableCasts] of this.UnitsAvailableCasts) {
+    //       const unitSpell = this._spells[unit.constructor.name]
+    //       if(unitSpell instanceof Shadowstep && availableCasts.Targets.find(u => u instanceof Princess)){
+    //         isSpellCheck = true;
+    //       }
+    //       if(unitSpell instanceof PowerStomp){
+    //         for (let [unit, tile] of unitSpell.TilesBehindMap) {
+    //             if(unit instanceof Princess && tile.isDestroyed === true){
+    //                 isSpellCheck = true;
+    //             }
+    //         }
+    //       }
+    //     }
+    //     return isSpellCheck;
+    //   }
+
     public CastSpell(castingUnit: Unit, targetObject: GameObject){
         //console.log("cast spell test")
         this._spells.get(castingUnit.constructor.name).Cast(castingUnit, targetObject, this);
@@ -118,11 +136,27 @@ export class SpellManager{
         unit2.column = unitColumnTemp;
     }
 
-    GetPowerStompTiles(castingUnit: Unit): Tile[]{
-        return this._validator.UnitsAvailableMoves.get(castingUnit).Tiles;
+    GetPowerStompCastables(castingUnit: Unit): {Targets: Tile[], BehindTiles: Map<Unit,Tile>}{
+        let targetTiles = [] as Tile[];
+        let behindTilesMap = new Map<Unit, Tile>();
+        let movePatternTiles = this._validator.UnitsAvailableMoves.get(castingUnit).Tiles;
+        movePatternTiles.forEach(tile => {
+            let powerStompUnits = this.getEnemyUnitsAround(castingUnit, tile);
+            powerStompUnits.forEach(unit =>{
+                let emptyTileBehindUnit = this.getUnitEmptyTileBehind(castingUnit, unit);
+                if(emptyTileBehindUnit !== null){
+                    behindTilesMap.set(unit, emptyTileBehindUnit);
+                    if(!targetTiles.includes(tile)){
+                        targetTiles.push(tile);
+                    }
+                }
+            })
+        })
+        return {Targets: targetTiles, BehindTiles: behindTilesMap};
+
     }
 
-    CastPowerStomp(castingUnit: Unit, targetingTile: Tile){
+    getEnemyUnitsAround(castingUnit: Unit, targetingTile: Tile): Unit[]{
         let uncapturedUnits = this._units.filter(u => !u.isCaptured);
         let enemyUnitsAround = uncapturedUnits.filter(unit => {
             return (
@@ -130,10 +164,14 @@ export class SpellManager{
                 Math.abs(targetingTile.column - unit.column) <= 1 &&
                 castingUnit.color !== unit.color)
         });
+        return enemyUnitsAround;
+    }
+
+    public CastPowerStomp(castingUnit: Unit, targetingTile: Tile, tilesBehindMap: Map<Unit, Tile>){
         this.MoveUnit(castingUnit, targetingTile);
-        enemyUnitsAround.forEach(enemyUnit => {
-            this.sendUnitToFurthestEmptyTile(castingUnit, enemyUnit);
-        })
+        for (const [unit, emptyTileBehind] of tilesBehindMap) {
+            this.MoveUnit(unit, emptyTileBehind);
+          }
     }
 
     public MoveUnit(unit: Unit, tile: Tile){
@@ -147,7 +185,7 @@ export class SpellManager{
 
     public isBetween = (num1: number,num2: number,value: number) => value >= num1 && value <= num2 
 
-    sendUnitToFurthestEmptyTile(castingUnit: Unit, targetingUnit: Unit){
+    getUnitEmptyTileBehind(castingUnit: Unit, targetingUnit: Unit){
         var tileBehindUnit: Tile = null;
         var units2DArray = this.getUnits2DArray();
         var targetUnitHigher;
@@ -156,32 +194,21 @@ export class SpellManager{
                 if(this.isBetween(0, Game.BOARD_ROWS-1, targetingUnit.row + targetUnitHigher)  &&
                     units2DArray[targetingUnit.row + targetUnitHigher][targetingUnit.column] === null){
                     tileBehindUnit = this._tiles[targetingUnit.row + targetUnitHigher][targetingUnit.column];
-                    console.log("columns")
                 }
         }
         else if(castingUnit.row === targetingUnit.row){
             targetUnitHigher = Math.sign(targetingUnit.column-castingUnit.column) * 1;
-            console.log("between")
-            console.log(this.isBetween(0, Game.BOARD_COLUMNS-1, targetingUnit.column + targetUnitHigher))
-            console.log("units2darray")
-            console.log(units2DArray[targetingUnit.row][targetingUnit.column + targetUnitHigher])
+            // console.log("between")
+            // console.log(this.isBetween(0, Game.BOARD_COLUMNS-1, targetingUnit.column + targetUnitHigher))
+            // console.log("units2darray")
+            // console.log(units2DArray[targetingUnit.row][targetingUnit.column + targetUnitHigher])
                 if(this.isBetween(0, Game.BOARD_COLUMNS-1, targetingUnit.column + targetUnitHigher) &&
                     units2DArray[targetingUnit.row][targetingUnit.column + targetUnitHigher] === null){
                     tileBehindUnit = this._tiles[targetingUnit.row][targetingUnit.column + targetUnitHigher];
-                    console.log("rows")
                 }
         }
 
-        console.log("tileBehindUnit")
-        console.log(tileBehindUnit)
-        console.log("targetUnitHigher")
-        console.log(targetUnitHigher)
-        console.log("targetingUnit")
-        console.log(targetingUnit)
-        if(tileBehindUnit !== null){
-            this.MoveUnit(targetingUnit, tileBehindUnit);
-        }
-
+        return tileBehindUnit;
     }
 
     GetSwapCastables(castingUnit: Unit): Unit[]{
