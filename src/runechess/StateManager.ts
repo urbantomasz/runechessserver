@@ -47,8 +47,8 @@ export class StateManager {
     
     public TryCastingSpell(castingUnit: Unit, targetObject: GameObject): boolean {
        // console.log("Try casting spell")
-        if(!this._spellManager.UnitsAvailableCasts.get(castingUnit).Targets.includes(targetObject)) return false;
-        if(this._playerTurnColor !== castingUnit.color) return false;
+       // if(!this._spellManager.UnitsAvailableCasts.get(castingUnit).Targets.includes(targetObject)) return false;
+       // if(this._playerTurnColor !== castingUnit.color) return false;
         this._spellManager.CastSpell(castingUnit, targetObject);
         if(this._tiles[castingUnit.row][castingUnit.column].isDestroyed){
             castingUnit.isCaptured = true;
@@ -56,7 +56,7 @@ export class StateManager {
         if(targetObject instanceof Unit && this._tiles[targetObject.row][targetObject.column].isDestroyed){
             targetObject.isCaptured = true;
         }
-        castingUnit.usedSpell = true;
+       // castingUnit.usedSpell = true;
         return this.OnTurnFinished()
     }
 
@@ -75,15 +75,15 @@ export class StateManager {
     }
 
     public TryMoveUnit(unit: Unit, tile: Tile): boolean{
-        if(!this._validator.UnitsAvailableMoves.get(unit).Tiles.includes(tile)) return false;
-        if(this._playerTurnColor !== unit.color) return false;
+        //if(!this._validator.UnitsAvailableMoves.get(unit).Tiles.includes(tile)) return false;
+        //if(this._playerTurnColor !== unit.color) return false;
         this.MoveUnit(unit, tile);
         return this.OnTurnFinished()
     }
 
     public TryTakeUnit(selectedUnit: Unit, capturingUnit: Unit): boolean{
-        if(!this._validator.UnitsAvailableMoves.get(selectedUnit).Units.includes(capturingUnit)) return false;
-        if(this._playerTurnColor !== selectedUnit.color) return false;
+       // if(!this._validator.UnitsAvailableMoves.get(selectedUnit).Units.includes(capturingUnit)) return false;
+       // if(this._playerTurnColor !== selectedUnit.color) return false;
         if(capturingUnit instanceof Princess){
             globalEvent.fire("PrincessTaken");
         }
