@@ -68,14 +68,14 @@ export class SpawnTile implements ISpell{
 }
 
 export class PowerStomp implements ISpell{
-    public TilesBehindMap: Map<Unit,Tile> = new Map<Unit,Tile>();
+    public TilesBehindMap: Map<Unit,Map<Tile,Map<Unit,Tile>>> = new Map<Unit,Map<Tile,Map<Unit,Tile>>>();
     GetValidTargets(castingUnit: Unit, spellManager: SpellManager): Tile[] {
          const powerStompCastables = spellManager.GetPowerStompCastables(castingUnit);
-         this.TilesBehindMap = powerStompCastables.BehindTiles;
+         this.TilesBehindMap.set(castingUnit,powerStompCastables.TileToUnitToTileBehindMap);
          return powerStompCastables.Targets;
     }
     Cast(castingUnit: Unit, target: GameObject, spellManager: SpellManager){
-        spellManager.CastPowerStomp(castingUnit, target as Tile, this.TilesBehindMap);
+        spellManager.CastPowerStomp(castingUnit, target as Tile, this.TilesBehindMap.get(castingUnit).get(target as Tile));
     }
 }
 

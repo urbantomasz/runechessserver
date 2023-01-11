@@ -21,8 +21,7 @@ export class Validator{
         this._units = units;
         this._tiles = tiles;
         //this._unitsAvailableCasts = spellManager.UnitsAvailableCasts;
-        this.updateUnitsAvailableMoves();
-        globalEvent.on("TurnFinished", evt => this.updateUnitsAvailableMoves())
+        this.UpdateUnitsAvailableMoves();
     }
    
     public get UnitsAvailableMoves(): Map<Unit, AvailableMoves>{
@@ -33,7 +32,8 @@ export class Validator{
         return this._unitsAvailableMoves;
     }
 
-    private updateUnitsAvailableMoves(): void{
+    public UpdateUnitsAvailableMoves(): void{
+      console.time('updateUnitsAvailableMoves')
         let unitsAvailableMoves = new Map<Unit, AvailableMoves>();
         this._units.forEach(unit =>{
             let movesAvailable = this.getUnitAvailableMoves(unit,  this._units.filter(u => !u.isCaptured), this._tiles);
@@ -42,6 +42,7 @@ export class Validator{
 
         this._unitsAvailableMoves = unitsAvailableMoves;
         globalEvent.fire("AvailableMovesUpdated");
+        console.timeEnd('updateUnitsAvailableMoves')
     }
 
     // private checkForCheck(): boolean{

@@ -2,10 +2,10 @@ import { StateManager } from "./StateManager";
 import { Tile } from "./Tile";
 import { King, Knight, Mage, Priest, Princess, Rogue, Unit } from "./Unit";
 import { Castle, DestroyTile, ISpell, PowerStomp, Ressurection, Sacrifice, Shadowstep} from "./Spell"
-import { globalEvent } from "@billjs/event-emitter";
 import { Game } from "./Game";
 import { GameObject } from "./GameObject";
 import { Validator } from "./Validator";
+import { Color } from "./Enums";
 
 export interface AvailableCasts{
     Targets: GameObject[]
@@ -28,8 +28,7 @@ export class SpellManager{
         this._tiles = tiles;
         this._validator = validator;
         this.initializeSpellsDictionary();
-        this.updateUnitsAvailableCasts();
-        globalEvent.on("TurnFinished", evt => this.updateUnitsAvailableCasts())
+        this.UpdateUnitsAvailableCasts();
     }
 
     private initializeSpellsDictionary(){
@@ -42,7 +41,7 @@ export class SpellManager{
         this._spells.set(Knight.name, new PowerStomp());
     }
 
-    private getUnits2DArray(){
+    private getUnits2DArray(): Unit[][]{
         let units2DArray = Array(Game.BOARD_ROWS).fill(null);   
 
         for(let i = 0; i < Game.BOARD_ROWS; i++){
@@ -55,13 +54,15 @@ export class SpellManager{
             }
         })
 
-        console.log(units2DArray.toString())
-        console.log(units2DArray.length)
-        console.log(units2DArray[0].length)
+        // console.log(units2DArray.toString())
+        // console.log(units2DArray.length)
+        // console.log(units2DArray[0].length)
         return units2DArray;
     }
 
-    public updateUnitsAvailableCasts(): void {
+    public UpdateUnitsAvailableCasts(): void {
+        console.log("update casts")
+        console.time('updateUnitsAvailableCasts')
         this._unitsAvailableCasts = new Map<Unit, AvailableCasts>();
         this._units.forEach(unit =>{
             if(unit.usedSpell || unit.isCaptured || !this._spells.has(unit.constructor.name)){
@@ -74,6 +75,7 @@ export class SpellManager{
                 this._unitsAvailableCasts.set(unit, {Targets: this._spells.get(unit.constructor.name).GetValidTargets(unit, this)});
             }
         })
+        console.timeEnd('updateUnitsAvailableCasts')
     }
 
     // public CheckForSpellCheck(): boolean{
@@ -136,33 +138,47 @@ export class SpellManager{
         unit2.column = unitColumnTemp;
     }
 
-    GetPowerStompCastables(castingUnit: Unit): {Targets: Tile[], BehindTiles: Map<Unit,Tile>}{
+    GetPowerStompCastables(castingUnit: Unit): {Targets: Tile[], TileToUnitToTileBehindMap: Map<Tile,Map<Unit,Tile>>}{
         let targetTiles = [] as Tile[];
-        let behindTilesMap = new Map<Unit, Tile>();
+        let tileToUnitToTileBehindMap = new Map<Tile,Map<Unit, Tile>>();
         let movePatternTiles = this._validator.UnitsAvailableMoves.get(castingUnit).Tiles;
-        movePatternTiles.forEach(tile => {
-            let powerStompUnits = this.getEnemyUnitsAround(castingUnit, tile);
-            powerStompUnits.forEach(unit =>{
-                let emptyTileBehindUnit = this.getUnitEmptyTileBehind(castingUnit, unit);
+        movePatternTiles.forEach(movePatternTile => {
+
+            let behindTilesMap = new Map<Unit, Tile>();
+
+            let units2DArray = this.getUnits2DArray();
+            units2DArray[castingUnit.row][castingUnit.column] = null;
+            units2DArray[movePatternTile.row][movePatternTile.column] = castingUnit;
+
+            let enemyUnitsAround = this.getEnemyUnitsAroundTile(castingUnit.color, movePatternTile);
+
+            enemyUnitsAround.forEach(enemyUnit =>{
+                let emptyTileBehindUnit = this.getUnitEmptyTileBehind(movePatternTile, enemyUnit, units2DArray);
                 if(emptyTileBehindUnit !== null){
-                    behindTilesMap.set(unit, emptyTileBehindUnit);
-                    if(!targetTiles.includes(tile)){
-                        targetTiles.push(tile);
+                    behindTilesMap.set(enemyUnit, emptyTileBehindUnit);
+                    if(!targetTiles.includes(movePatternTile)){
+                        targetTiles.push(movePatternTile);
                     }
                 }
             })
+
+            if(behindTilesMap.size > 0){
+                tileToUnitToTileBehindMap.set(movePatternTile, behindTilesMap);
+            }
+
+
         })
-        return {Targets: targetTiles, BehindTiles: behindTilesMap};
+        return {Targets: targetTiles, TileToUnitToTileBehindMap: tileToUnitToTileBehindMap};
 
     }
 
-    getEnemyUnitsAround(castingUnit: Unit, targetingTile: Tile): Unit[]{
+    getEnemyUnitsAroundTile(color: Color, targetingTile: Tile): Unit[]{
         let uncapturedUnits = this._units.filter(u => !u.isCaptured);
         let enemyUnitsAround = uncapturedUnits.filter(unit => {
             return (
                 Math.abs(targetingTile.row - unit.row) <= 1 &&
                 Math.abs(targetingTile.column - unit.column) <= 1 &&
-                castingUnit.color !== unit.color)
+                color !== unit.color)
         });
         return enemyUnitsAround;
     }
@@ -185,26 +201,24 @@ export class SpellManager{
 
     public isBetween = (num1: number,num2: number,value: number) => value >= num1 && value <= num2 
 
-    getUnitEmptyTileBehind(castingUnit: Unit, targetingUnit: Unit){
+    getUnitEmptyTileBehind(targetingTile: Tile, targetingUnit: Unit, units2DArray: Unit[][]){
         var tileBehindUnit: Tile = null;
-        var units2DArray = this.getUnits2DArray();
-        var targetUnitHigher;
-        if(castingUnit.column === targetingUnit.column){
-            targetUnitHigher = Math.sign(targetingUnit.row-castingUnit.row) * 1;
-                if(this.isBetween(0, Game.BOARD_ROWS-1, targetingUnit.row + targetUnitHigher)  &&
-                    units2DArray[targetingUnit.row + targetUnitHigher][targetingUnit.column] === null){
-                    tileBehindUnit = this._tiles[targetingUnit.row + targetUnitHigher][targetingUnit.column];
+        if(targetingTile.column === targetingUnit.column){
+            let isTargetUnitAbove = Math.sign(targetingUnit.row-targetingTile.row) * 1;
+                if(this.isBetween(0, Game.BOARD_ROWS-1, targetingUnit.row + isTargetUnitAbove)  &&
+                    units2DArray[targetingUnit.row + isTargetUnitAbove][targetingUnit.column] === null){
+                    tileBehindUnit = this._tiles[targetingUnit.row + isTargetUnitAbove][targetingUnit.column];
                 }
         }
-        else if(castingUnit.row === targetingUnit.row){
-            targetUnitHigher = Math.sign(targetingUnit.column-castingUnit.column) * 1;
+        else if(targetingTile.row === targetingUnit.row){
+            let isTargetUnitOnRight = Math.sign(targetingUnit.column-targetingTile.column) * 1;
             // console.log("between")
             // console.log(this.isBetween(0, Game.BOARD_COLUMNS-1, targetingUnit.column + targetUnitHigher))
             // console.log("units2darray")
             // console.log(units2DArray[targetingUnit.row][targetingUnit.column + targetUnitHigher])
-                if(this.isBetween(0, Game.BOARD_COLUMNS-1, targetingUnit.column + targetUnitHigher) &&
-                    units2DArray[targetingUnit.row][targetingUnit.column + targetUnitHigher] === null){
-                    tileBehindUnit = this._tiles[targetingUnit.row][targetingUnit.column + targetUnitHigher];
+                if(this.isBetween(0, Game.BOARD_COLUMNS-1, targetingUnit.column + isTargetUnitOnRight) &&
+                    units2DArray[targetingUnit.row][targetingUnit.column + isTargetUnitOnRight] === null){
+                    tileBehindUnit = this._tiles[targetingUnit.row][targetingUnit.column + isTargetUnitOnRight];
                 }
         }
 

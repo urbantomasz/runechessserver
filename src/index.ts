@@ -10,7 +10,6 @@ import { GameRoom } from "./rooms/GameRoom";
 import { LobbyRoom } from "./rooms/GameLobbyRoom";
 import { monitor } from "@colyseus/monitor";
 
-
 const server = createServer(); // create the http server manually
 const app = express()
 const PORT = parseInt(process.env.PORT) || 2537;

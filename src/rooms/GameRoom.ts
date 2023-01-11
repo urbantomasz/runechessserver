@@ -23,11 +23,13 @@ export class GameRoom extends Room<GameRoomState> {
 
     //this.setState(new GameRoomState(units, tiles, availableMoves))
   private updateState(){
+    console.time('updateState')
     this.state.Units = this._game.Units.map(x => new UnitSchema(x)) as ArraySchema<UnitSchema>;
     this.state.Tiles = this._game.Tiles.flat().map(x => new TileSchema(x)) as ArraySchema<TileSchema>;
     this.state.AvailableMoves = this.mapMovesToSchema(this._game.UnitsAvailableMoves);
     this.state.AvailableCasts = this.mapCastsToSchema(this._game.UnitsAvailableCasts);
     this.state.PlayerTurnColor = this._game.GetPlayerTurnColor();
+    console.timeEnd('updateState')
   }
 
   private initializeState(){
