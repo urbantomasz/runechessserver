@@ -9,21 +9,22 @@ import express from "express";
 import { GameRoom } from "./rooms/GameRoom";
 import { LobbyRoom } from "./rooms/GameLobbyRoom";
 import { monitor } from "@colyseus/monitor";
+import { createConnection } from "mysql";
 
 const server = createServer(); // create the http server manually
 const app = express()
 const PORT = parseInt(process.env.PORT) || 2537;
 
-// var con = createConnection({
-//   host: "runechess.database.windows.net",
-//   user: "yourusername",
-//   password: "yourpassword"
-// });
+var con = createConnection({
+  host: "runechess.database.windows.net",
+  user: "CloudSA88725cbe",
+  password: "123qweasdZXC!"
+});
 
-// con.connect(function(err) {
-//   if (err) throw err;
-//   console.log("Connected!");
-// });
+con.connect(function(err) {
+  if (err) throw err;
+  console.log("Connected!");
+});
 
 app.use('/colyseus', monitor())
 app.get('/', function (req, res) {
