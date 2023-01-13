@@ -1,3 +1,4 @@
-export class GameObject{
+export abstract class GameObject{
     id: string;
+    abstract toNotationString(): string;
 }

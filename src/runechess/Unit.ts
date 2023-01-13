@@ -30,6 +30,10 @@ export abstract class Unit extends GameObject{
         this.isCaptured = false;
         this.usedSpell = false;
     }
+
+    public toNotationString(): string{
+        return this.constructor.name[0].toUpperCase();
+    }
 }
 
 export class Princess extends Unit {

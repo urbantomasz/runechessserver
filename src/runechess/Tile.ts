@@ -1,3 +1,4 @@
+import { Row } from "./Enums";
 import { GameObject } from "./GameObject";
 import { Unit } from "./Unit";
 
@@ -18,5 +19,9 @@ export class Tile extends GameObject{
     
     private getTileId(): string {
         return "tile_".concat(this.row.toString(), this.column.toString());
+    }
+
+    public toNotationString(): string{
+        return Row[this.row] + this.column.toString();
     }
 }

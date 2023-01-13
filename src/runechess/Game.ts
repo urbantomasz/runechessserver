@@ -8,6 +8,7 @@ import { AvailableCasts, SpellManager } from "./SpellManager";
 import { Color } from "./Enums";
 import { GameObject } from "./GameObject";
 import { IGame } from "./Interfaces";
+import { Move } from "./Move";
 //todo move some subclasses to game maybe as interfaces or abstract classes 
 export class Game implements IGame {
     public static BOARD_ROWS = 8;
@@ -69,6 +70,10 @@ export class Game implements IGame {
 
     public get Tiles(): Tile[][]{
         return this._stateManager.Tiles;
+    }
+
+    public get Moves(): Move[]{
+        return this._stateManager.Moves;
     }
 
     public get Units(): Unit[]{

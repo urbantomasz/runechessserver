@@ -110,13 +110,17 @@ export class GameRoomState extends Schema {
   @type([UnitSchema]) Units: ArraySchema<UnitSchema>;
   @type({ map: AvailableMovesSchema }) AvailableMoves: MapSchema<AvailableMovesSchema>;
   @type({ map: AvailableCastsSchema }) AvailableCasts: MapSchema<AvailableCastsSchema>;
+  @type(["string"]) Moves: ArraySchema<string>;
   @type("number") PlayerTurnColor: number;
+  @type("number") RedPlayerRemainingTime: number;
+  @type("number") BluePlayerRemainingTime: number;
 
   constructor(
     units: ArraySchema<UnitSchema>,
     tiles: ArraySchema<TileSchema>,
     availableMoves: MapSchema<AvailableMovesSchema>,
-    availableCasts: MapSchema<AvailableCastsSchema>
+    availableCasts: MapSchema<AvailableCastsSchema>,
+    moves: ArraySchema<string>
     ) {
     super();
     this.Tiles = tiles;
@@ -124,5 +128,8 @@ export class GameRoomState extends Schema {
     this.AvailableMoves = availableMoves;
     this.AvailableCasts = availableCasts;
     this.PlayerTurnColor = 0;
+    this.Moves = moves;
+    this.RedPlayerRemainingTime = 10 * 60 * 1000;
+    this.BluePlayerRemainingTime = 10 * 60 * 1000;
   }
 }

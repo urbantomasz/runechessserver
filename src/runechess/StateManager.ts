@@ -2,6 +2,7 @@ import { globalEvent } from "@billjs/event-emitter";
 import { Color } from "./Enums";
 import { Game } from "./Game";
 import { GameObject } from "./GameObject";
+import { Move } from "./Move";
 import { SpellManager } from "./SpellManager";
 import { Tile } from "./Tile";
 import { DarkKnight, King, Knight, Peasant, Princess, Unit } from "./Unit";
@@ -11,23 +12,30 @@ export class StateManager {
      private _validator: Validator;
      private _spellManager: SpellManager;
      private _tiles: Tile[][];
-     public get Tiles(){
-        return this._tiles;
-     }
+     private _moves: Move[] = [] as Move[];
      private _units: Unit[];
-     public get Units(){
-        return this._units;
-     }
      private _playerTurnColor: Color;
-     public get PlayerTurnColor(){
-        return this._playerTurnColor;
-     }
+ 
     constructor(units: Unit[], tiles: Tile[][], validator: Validator, spellManager: SpellManager) {
         this._units = units;
         this._tiles = tiles;
         this._validator = validator;
         this._spellManager = spellManager;
         this._playerTurnColor = Color.Blue;
+    }
+
+    public get Tiles(){
+        return this._tiles;
+    }
+    public get Units(){
+        return this._units;
+    }
+    public get PlayerTurnColor(){
+        return this._playerTurnColor;
+    }
+
+    public get Moves(){
+        return this._moves;
     }
 
     public GetUnitById(id: string): Unit{
@@ -57,6 +65,7 @@ export class StateManager {
             targetObject.isCaptured = true;
         }
        // castingUnit.usedSpell = true;
+       this._moves.push(new Move(castingUnit, targetObject, true))
         return this.OnTurnFinished()
     }
 
@@ -78,6 +87,7 @@ export class StateManager {
         //if(!this._validator.UnitsAvailableMoves.get(unit).Tiles.includes(tile)) return false;
         //if(this._playerTurnColor !== unit.color) return false;
         this.MoveUnit(unit, tile);
+        this._moves.push(new Move(unit, tile))
         return this.OnTurnFinished()
     }
 
@@ -91,6 +101,7 @@ export class StateManager {
         capturingUnit.isCaptured = true;
         capturingUnitTile.lastCapturedUnit = capturingUnit;
         this.MoveUnit(selectedUnit, capturingUnitTile);
+        this._moves.push(new Move(selectedUnit, capturingUnit, true))
         return this.OnTurnFinished();
     }
 

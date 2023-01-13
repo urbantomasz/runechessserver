@@ -1,5 +1,5 @@
 import { ArraySchema, MapSchema } from "@colyseus/schema";
-import { Room, Client } from "colyseus";
+import { Room, Client, Delayed, Clock } from "colyseus";
 import { Color } from "../runechess/Enums";
 import { Game } from "../runechess/Game";
 import { IGame } from "../runechess/Interfaces";
@@ -13,6 +13,7 @@ export class GameRoom extends Room<GameRoomState> {
   private _bluePlayerId: string = null;
   private _redPlayerId: string = null;
   private _isPlayground: boolean = false;
+  private _lastMoveTimeStamp: number;
   /**
    *
    */
@@ -24,12 +25,27 @@ export class GameRoom extends Room<GameRoomState> {
     //this.setState(new GameRoomState(units, tiles, availableMoves))
   private updateState(){
     console.time('updateState')
+
+    let currentMoveTimeStamp = Date.now();
+
+    if(this.state.PlayerTurnColor === Color.Blue){
+      this.state.BluePlayerRemainingTime = this.state.BluePlayerRemainingTime - (currentMoveTimeStamp - this._lastMoveTimeStamp);
+    } 
+
+    if(this.state.PlayerTurnColor === Color.Red){
+      this.state.RedPlayerRemainingTime = this.state.RedPlayerRemainingTime - (currentMoveTimeStamp - this._lastMoveTimeStamp);
+    }
+
+    this._lastMoveTimeStamp = currentMoveTimeStamp;
+
     this.state.Units = this._game.Units.map(x => new UnitSchema(x)) as ArraySchema<UnitSchema>;
     this.state.Tiles = this._game.Tiles.flat().map(x => new TileSchema(x)) as ArraySchema<TileSchema>;
     this.state.AvailableMoves = this.mapMovesToSchema(this._game.UnitsAvailableMoves);
     this.state.AvailableCasts = this.mapCastsToSchema(this._game.UnitsAvailableCasts);
     this.state.PlayerTurnColor = this._game.GetPlayerTurnColor();
+    this.state.Moves = this._game.Moves.map(x => x.toNotationString()) as ArraySchema<string>;
     console.timeEnd('updateState')
+    console.log(this.state.BluePlayerRemainingTime)
   }
 
   private initializeState(){
@@ -38,7 +54,9 @@ export class GameRoom extends Room<GameRoomState> {
     let tiles = this._game.Tiles.flat().map(x => new TileSchema(x)) as ArraySchema<TileSchema>;
     let availableMoves = this.mapMovesToSchema(this._game.UnitsAvailableMoves);
     let availableCasts = this.mapCastsToSchema(this._game.UnitsAvailableCasts);
-    this.setState(new GameRoomState(units, tiles, availableMoves, availableCasts))
+    let moves = this._game.Moves.map(x => x.toNotationString()) as ArraySchema<string>;
+    this._lastMoveTimeStamp = Date.now();
+    this.setState(new GameRoomState(units, tiles, availableMoves, availableCasts, moves))
   }
 
   onJoin(client: Client, options?: any, auth?: any): void | Promise<any> {
@@ -66,16 +84,20 @@ export class GameRoom extends Room<GameRoomState> {
 
   onCreate (options: any) {
    // this.autoDispose = false;
+  
+
     this.maxClients = 2;
     if(options.isPlayground){
       this.maxClients = 1;
     }
 
-
     if(options.hasOwnProperty("isPlayground")){
       console.log("isplayground value: " + options.isPlayground)
       this._isPlayground = options.isPlayground;
     }
+
+     // start the clock ticking
+     this.clock.start();
     
     this.onMessage("TryMoveUnit", (client, data) =>{
       if(!this._isPlayground && !(client.id === (this._game.GetPlayerTurnColor() === Color.Blue ? this._bluePlayerId : this._redPlayerId))) return;
