@@ -28,6 +28,9 @@ export class Game implements IGame {
         
     };
 
+    public IsCheck(): boolean {
+        return this._validator.IsCheck;
+    }
 
     public GetPlayerTurnColor(): Color{
         return this._stateManager.PlayerTurnColor;

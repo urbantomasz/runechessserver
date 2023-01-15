@@ -11,6 +11,7 @@ export interface IGame{
     UnitsAvailableMoves: Map<Unit, AvailableMoves>
     UnitsAvailableCasts: Map<Unit, AvailableCasts>
     Moves: Move[];
+    IsCheck(): boolean;
     GetPlayerTurnColor: () => Color;
     TryMoveUnit: (selectedUnitId: string, tileId: string) => boolean;
     TryCaptureUnit: (selectedUnitId: string, capturingUnitId: string) => boolean;

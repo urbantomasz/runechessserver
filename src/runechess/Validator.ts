@@ -15,11 +15,17 @@ export class Validator{
     private readonly _units: Unit[];
     //private readonly _unitsAvailableCasts: Map<Unit, AvailableCasts>;
     private _unitsAvailableMoves: Map<Unit, AvailableMoves>;
+    private _isCheck: boolean;
     constructor(units: Unit[], tiles: Tile[][]) {
         this._units = units;
         this._tiles = tiles;
+        this._isCheck = false;
         //this._unitsAvailableCasts = spellManager.UnitsAvailableCasts;
         this.UpdateUnitsAvailableMoves();
+    }
+
+    public get IsCheck(): boolean{
+      return this._isCheck;
     }
    
     public get UnitsAvailableMoves(): Map<Unit, AvailableMoves>{
@@ -33,7 +39,22 @@ export class Validator{
     public UpdateUnitsAvailableMoves(): void{
       console.time('updateUnitsAvailableMoves')
       this._unitsAvailableMoves = this.GetUnitsAvailableMoves(this._units, this._tiles);
+      this._isCheck = this.checkIfCheck();
+      if(this._isCheck){
+        console.log("jednostka jest bita");
+      }
       console.timeEnd('updateUnitsAvailableMoves')
+    }
+
+    private checkIfCheck(): boolean{
+      let isCheck = false;
+      for(const [unit, move] of this._unitsAvailableMoves){
+        if(move.Units.findIndex(u => u instanceof Princess) >= 0){
+          isCheck = true;
+          break;
+        }
+      }
+      return isCheck;
     }
 
     public GetUnitsAvailableMoves(units: Unit[], tiles: Tile[][], omitUnitItself: boolean = false): Map<Unit, AvailableMoves>{
@@ -189,14 +210,16 @@ export class Validator{
           let tilesArrayCopy = cloneDeep(_this._tiles)
           let princessCopy = unitsArrayCopy.find(u => u instanceof Princess && u.color === unit.color);
           let unitsCopy =  unitsArrayCopy.find(u => u.row === unit.row && u.column === unit.column);
+          let enemyUnitCopy =  unitsArrayCopy.find(u => u.row === enemyUnit.row && u.column === enemyUnit.column);
           unitsCopy.row = enemyUnit.row
           unitsCopy.column = enemyUnit.column
-          enemyUnit.isCaptured = true;
+          enemyUnitCopy.isCaptured = true;
+          tilesArrayCopy[enemyUnit.row][enemyUnit.column].lastCapturedUnit = enemyUnit;
           let availableMovesAfterTake = this.GetUnitsAvailableMoves(unitsArrayCopy, tilesArrayCopy, true);
           for(const [unit, moves] of availableMovesAfterTake){
             if(unit.color === princessCopy.color) continue;
             if(moves.Units.includes(princessCopy)){
-              unitsToRemove.push(unit);
+              unitsToRemove.push(enemyUnit);
               break;
             }
           }
