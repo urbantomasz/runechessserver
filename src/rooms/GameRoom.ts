@@ -14,6 +14,7 @@ export class GameRoom extends Room<GameRoomState> {
   private _redPlayerId: string = null;
   private _isPlayground: boolean = false;
   private _lastMoveTimeStamp: number;
+  private _isFirstMove: boolean = true;
   /**
    *
    */
@@ -22,18 +23,20 @@ export class GameRoom extends Room<GameRoomState> {
     this.initializeState()
   }
 
-    //this.setState(new GameRoomState(units, tiles, availableMoves))
   private updateState(){
     console.time('updateState')
-
     let currentMoveTimeStamp = Date.now();
 
-    if(this.state.PlayerTurnColor === Color.Blue){
-      this.state.BluePlayerRemainingTime = this.state.BluePlayerRemainingTime - (currentMoveTimeStamp - this._lastMoveTimeStamp);
-    } 
-
-    if(this.state.PlayerTurnColor === Color.Red){
-      this.state.RedPlayerRemainingTime = this.state.RedPlayerRemainingTime - (currentMoveTimeStamp - this._lastMoveTimeStamp);
+    if(this._isFirstMove){
+      this._isFirstMove = false;
+    } else{
+      if(this.state.PlayerTurnColor === Color.Blue){
+        this.state.BluePlayerRemainingTime = this.state.BluePlayerRemainingTime - (currentMoveTimeStamp - this._lastMoveTimeStamp);
+      } 
+  
+      if(this.state.PlayerTurnColor === Color.Red){
+        this.state.RedPlayerRemainingTime = this.state.RedPlayerRemainingTime - (currentMoveTimeStamp - this._lastMoveTimeStamp);
+      }
     }
 
     this._lastMoveTimeStamp = currentMoveTimeStamp;
@@ -45,7 +48,6 @@ export class GameRoom extends Room<GameRoomState> {
     this.state.PlayerTurnColor = this._game.GetPlayerTurnColor();
     this.state.Moves = this._game.Moves.map(x => x.toNotationString()) as ArraySchema<string>;
     console.timeEnd('updateState')
-    console.log(this.state.BluePlayerRemainingTime)
   }
 
   private initializeState(){
@@ -55,7 +57,6 @@ export class GameRoom extends Room<GameRoomState> {
     let availableMoves = this.mapMovesToSchema(this._game.UnitsAvailableMoves);
     let availableCasts = this.mapCastsToSchema(this._game.UnitsAvailableCasts);
     let moves = this._game.Moves.map(x => x.toNotationString()) as ArraySchema<string>;
-    this._lastMoveTimeStamp = Date.now();
     this.setState(new GameRoomState(units, tiles, availableMoves, availableCasts, moves))
   }
 

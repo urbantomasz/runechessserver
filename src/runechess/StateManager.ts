@@ -15,6 +15,7 @@ export class StateManager {
      private _moves: Move[] = [] as Move[];
      private _units: Unit[];
      private _playerTurnColor: Color;
+     private _princessCaptured: Unit;
  
     constructor(units: Unit[], tiles: Tile[][], validator: Validator, spellManager: SpellManager) {
         this._units = units;
@@ -22,6 +23,7 @@ export class StateManager {
         this._validator = validator;
         this._spellManager = spellManager;
         this._playerTurnColor = Color.Blue;
+        this._princessCaptured = null;
     }
 
     public get Tiles(){
@@ -95,7 +97,8 @@ export class StateManager {
        // if(!this._validator.UnitsAvailableMoves.get(selectedUnit).Units.includes(capturingUnit)) return false;
        // if(this._playerTurnColor !== selectedUnit.color) return false;
         if(capturingUnit instanceof Princess){
-            globalEvent.fire("PrincessTaken");
+            this._princessCaptured = capturingUnit;
+            return false;
         }
         let capturingUnitTile = this._tiles[capturingUnit.row][capturingUnit.column];
         capturingUnit.isCaptured = true;

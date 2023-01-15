@@ -28,6 +28,7 @@ export class Game implements IGame {
         
     };
 
+
     public GetPlayerTurnColor(): Color{
         return this._stateManager.PlayerTurnColor;
     }

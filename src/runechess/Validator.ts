@@ -1,11 +1,9 @@
 import { Tile } from "./Tile";
 import { Princess, Unit } from "./Unit";
 import { rotateMatrix90 } from "./Helpers";
-import { globalEvent } from "@billjs/event-emitter";
 import { Game } from "./Game";
 import { Color, MoveType } from "./Enums";
-import { AvailableCasts, SpellManager } from "./SpellManager";
-import { Shadowstep } from "./Spell";
+import {cloneDeep} from 'lodash';
 
 export interface AvailableMoves{
     Tiles: Tile[]
@@ -34,27 +32,37 @@ export class Validator{
 
     public UpdateUnitsAvailableMoves(): void{
       console.time('updateUnitsAvailableMoves')
+      this._unitsAvailableMoves = this.GetUnitsAvailableMoves(this._units, this._tiles);
+      console.timeEnd('updateUnitsAvailableMoves')
+    }
+
+    public GetUnitsAvailableMoves(units: Unit[], tiles: Tile[][], omitPrincess: boolean = false): Map<Unit, AvailableMoves>{
         let unitsAvailableMoves = new Map<Unit, AvailableMoves>();
-        this._units.forEach(unit =>{
-            let movesAvailable = this.getUnitAvailableMoves(unit,  this._units.filter(u => !u.isCaptured), this._tiles);
+
+        units.forEach(unit =>{
+            if(unit.isCaptured) return;
+            let movesAvailable = this.getUnitAvailableMoves(unit,  units.filter(u => !u.isCaptured), tiles);
+            //movesAvailable = this.getUnitsMovesThatWouldResultInCheck(movesAvailable);
+            if(unit instanceof Princess && !omitPrincess){
+              // TODO: optimaze this part and make units a 2d array for faster checking
+              let queenMovesResultingInCast = this.getQueenMovesThatWouldResultInCheck(cloneDeep(unit), cloneDeep(movesAvailable));
+              movesAvailable.Tiles = movesAvailable.Tiles.filter(t => !queenMovesResultingInCast.Tiles.map(x=>x.id).includes(t.id));
+              movesAvailable.Units = movesAvailable.Units.filter(u => !queenMovesResultingInCast.Units.map(x=>x.id).includes(u.id));
+            }
             unitsAvailableMoves.set(unit, movesAvailable);
         })
 
-        this._unitsAvailableMoves = unitsAvailableMoves;
-        globalEvent.fire("AvailableMovesUpdated");
-        console.timeEnd('updateUnitsAvailableMoves')
+        return unitsAvailableMoves;
     }
 
-    // private checkForCheck(): boolean{
-    //   let isCheck = false;
+    // private CheckskByMove(): Unit[]{
+
     //   for (let availableMoves of this._unitsAvailableMoves.values()) {
     //     if(availableMoves.Units.find(unit => unit instanceof Princess)){
     //       isCheck = true;
     //       break;
     //     } 
     //   }
-     
-
     //   return isCheck;
     // }
 
@@ -181,5 +189,54 @@ export class Validator{
             break;
           } 
         }
+      }
+      
+      getQueenMovesThatWouldResultInCheck(princess: Unit, princessMovesAvailable: AvailableMoves): AvailableMoves {
+        let _this = this;
+        let tilesToRemove = [] as Tile[];
+        let unitsToRemove = [] as Unit[];
+        
+        princessMovesAvailable.Tiles.forEach(tile => {
+          let unitsArrayCopy = cloneDeep(_this._units);
+          let tilesArrayCopy = cloneDeep(_this._tiles)
+          let princessCopy = unitsArrayCopy.find(unit => unit.row === princess.row && unit.column === princess.column);
+          princessCopy.row = tile.row
+          princessCopy.column = tile.column
+          let availableMovesAfterMove = this.GetUnitsAvailableMoves(unitsArrayCopy, tilesArrayCopy, true);
+          for(const [unit, moves] of availableMovesAfterMove){
+            if(unit.color === princessCopy.color) continue;
+            if(moves.Units.includes(princessCopy)){
+              tilesToRemove.push(tile);
+              break;
+            }
+          }
+        });
+      
+        princessMovesAvailable.Units.forEach(enemyUnit => {
+          let unitsArrayCopy = cloneDeep(_this._units).filter(unit => unit.color === princess.color);
+          let tilesArrayCopy = cloneDeep(_this._tiles)
+          let princessCopy = unitsArrayCopy.find(unit => unit.row === princess.row && unit.column === princess.column);
+          princessCopy.row = enemyUnit.row
+          princessCopy.column = enemyUnit.column
+          enemyUnit.isCaptured = true;
+          let availableMovesAfterTake = this.GetUnitsAvailableMoves(unitsArrayCopy, tilesArrayCopy, true);
+          for(const [unit, moves] of availableMovesAfterTake){
+            if(unit.color === princessCopy.color) continue;
+            if(moves.Units.includes(princessCopy)){
+              unitsToRemove.push(unit);
+              break;
+            }
+          }
+        });
+
+        princessMovesAvailable.Tiles = princessMovesAvailable.Tiles.filter(t => tilesToRemove.includes(t));
+        princessMovesAvailable.Units = princessMovesAvailable.Units.filter(u => unitsToRemove.includes(u));
+
+        return princessMovesAvailable;
+      }
+      
+      
+      filterMovesThatCouldCheckPrincess(unitMovesAvailable: AvailableMoves): AvailableMoves {
+        throw new Error("Function not implemented.");
       }
 }
