@@ -36,53 +36,24 @@ export class Validator{
       console.timeEnd('updateUnitsAvailableMoves')
     }
 
-    public GetUnitsAvailableMoves(units: Unit[], tiles: Tile[][], omitPrincess: boolean = false): Map<Unit, AvailableMoves>{
+    public GetUnitsAvailableMoves(units: Unit[], tiles: Tile[][], omitUnitItself: boolean = false): Map<Unit, AvailableMoves>{
         let unitsAvailableMoves = new Map<Unit, AvailableMoves>();
 
         units.forEach(unit =>{
             if(unit.isCaptured) return;
             let movesAvailable = this.getUnitAvailableMoves(unit,  units.filter(u => !u.isCaptured), tiles);
-            //movesAvailable = this.getUnitsMovesThatWouldResultInCheck(movesAvailable);
-            if(unit instanceof Princess && !omitPrincess){
+            if(!omitUnitItself){
               // TODO: optimaze this part and make units a 2d array for faster checking
-              let queenMovesResultingInCast = this.getQueenMovesThatWouldResultInCheck(cloneDeep(unit), cloneDeep(movesAvailable));
-              movesAvailable.Tiles = movesAvailable.Tiles.filter(t => !queenMovesResultingInCast.Tiles.map(x=>x.id).includes(t.id));
-              movesAvailable.Units = movesAvailable.Units.filter(u => !queenMovesResultingInCast.Units.map(x=>x.id).includes(u.id));
+              let unitMovesResultingInCheck = this.getUnitMovesThatWouldResultInCheck(cloneDeep(unit), cloneDeep(movesAvailable));
+              movesAvailable.Tiles = movesAvailable.Tiles.filter(t => !unitMovesResultingInCheck.Tiles.map(x=>x.id).includes(t.id));
+              movesAvailable.Units = movesAvailable.Units.filter(u => !unitMovesResultingInCheck.Units.map(x=>x.id).includes(u.id));
+              console.log("n. of units that cant be taken becaues of princess check: " + unitMovesResultingInCheck.Units.length)
             }
             unitsAvailableMoves.set(unit, movesAvailable);
         })
 
         return unitsAvailableMoves;
     }
-
-    // private CheckskByMove(): Unit[]{
-
-    //   for (let availableMoves of this._unitsAvailableMoves.values()) {
-    //     if(availableMoves.Units.find(unit => unit instanceof Princess)){
-    //       isCheck = true;
-    //       break;
-    //     } 
-    //   }
-    //   return isCheck;
-    // }
-
- 
-    // private filterMovesToFreeFromCheck(): void{
-    //   // this.checkIfQueenHasMoves();
-    //   // this.checkIfQueenCanCastle();
-    //   // this.checkIfUnitsMoveCanSavePrincess();
-    // }
-    // private checkIfUnitsMoveCanSavePrincess(): boolean{
-    //   for (let [unit, moves] of this._unitsAvailableMoves) {
-    //   }
-    // }
-    // private checkForCheckmate(): boolean{
-    // // It's actually quite easy to check for a checkmate:
-
-    // // Can I move out of mate?
-    // // Can I block mate?
-    // // Can I take the attacker?
-    // }
 
     private getUnitAvailableMoves(unit: Unit, unitsOnBoard: Unit[], tilesOnBoard: Tile[][]): AvailableMoves {
         let movePattern = unit.movePattern;
@@ -191,17 +162,18 @@ export class Validator{
         }
       }
       
-      getQueenMovesThatWouldResultInCheck(princess: Unit, princessMovesAvailable: AvailableMoves): AvailableMoves {
+      getUnitMovesThatWouldResultInCheck(unit: Unit, unitMovesAvailable: AvailableMoves): AvailableMoves {
         let _this = this;
         let tilesToRemove = [] as Tile[];
         let unitsToRemove = [] as Unit[];
         
-        princessMovesAvailable.Tiles.forEach(tile => {
+        unitMovesAvailable.Tiles.forEach(tile => {
           let unitsArrayCopy = cloneDeep(_this._units);
           let tilesArrayCopy = cloneDeep(_this._tiles)
-          let princessCopy = unitsArrayCopy.find(unit => unit.row === princess.row && unit.column === princess.column);
-          princessCopy.row = tile.row
-          princessCopy.column = tile.column
+          let princessCopy = unitsArrayCopy.find(u => u instanceof Princess && u.color === unit.color);
+          let unitsCopy =  unitsArrayCopy.find(u => u.row === unit.row && u.column === unit.column);
+          unitsCopy.row = tile.row
+          unitsCopy.column = tile.column
           let availableMovesAfterMove = this.GetUnitsAvailableMoves(unitsArrayCopy, tilesArrayCopy, true);
           for(const [unit, moves] of availableMovesAfterMove){
             if(unit.color === princessCopy.color) continue;
@@ -212,12 +184,13 @@ export class Validator{
           }
         });
       
-        princessMovesAvailable.Units.forEach(enemyUnit => {
-          let unitsArrayCopy = cloneDeep(_this._units).filter(unit => unit.color === princess.color);
+        unitMovesAvailable.Units.forEach(enemyUnit => {
+          let unitsArrayCopy = cloneDeep(_this._units)
           let tilesArrayCopy = cloneDeep(_this._tiles)
-          let princessCopy = unitsArrayCopy.find(unit => unit.row === princess.row && unit.column === princess.column);
-          princessCopy.row = enemyUnit.row
-          princessCopy.column = enemyUnit.column
+          let princessCopy = unitsArrayCopy.find(u => u instanceof Princess && u.color === unit.color);
+          let unitsCopy =  unitsArrayCopy.find(u => u.row === unit.row && u.column === unit.column);
+          unitsCopy.row = enemyUnit.row
+          unitsCopy.column = enemyUnit.column
           enemyUnit.isCaptured = true;
           let availableMovesAfterTake = this.GetUnitsAvailableMoves(unitsArrayCopy, tilesArrayCopy, true);
           for(const [unit, moves] of availableMovesAfterTake){
@@ -229,14 +202,9 @@ export class Validator{
           }
         });
 
-        princessMovesAvailable.Tiles = princessMovesAvailable.Tiles.filter(t => tilesToRemove.includes(t));
-        princessMovesAvailable.Units = princessMovesAvailable.Units.filter(u => unitsToRemove.includes(u));
+        unitMovesAvailable.Tiles = unitMovesAvailable.Tiles.filter(t => tilesToRemove.includes(t));
+        unitMovesAvailable.Units = unitMovesAvailable.Units.filter(u => unitsToRemove.includes(u));
 
-        return princessMovesAvailable;
-      }
-      
-      
-      filterMovesThatCouldCheckPrincess(unitMovesAvailable: AvailableMoves): AvailableMoves {
-        throw new Error("Function not implemented.");
+        return unitMovesAvailable;
       }
 }
