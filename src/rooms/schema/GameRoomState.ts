@@ -115,6 +115,8 @@ export class GameRoomState extends Schema {
   @type("number") RedPlayerRemainingTime: number;
   @type("number") BluePlayerRemainingTime: number;
   @type("boolean") IsCheck: boolean;
+  @type("boolean") IsMate: boolean;
+
 
   constructor(
     units: ArraySchema<UnitSchema>,
@@ -133,5 +135,6 @@ export class GameRoomState extends Schema {
     this.RedPlayerRemainingTime = 10 * 60 * 1000;
     this.BluePlayerRemainingTime = 10 * 60 * 1000;
     this.IsCheck = false;
+    this.IsMate = false;
   }
 }

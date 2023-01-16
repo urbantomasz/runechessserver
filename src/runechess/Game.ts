@@ -1,6 +1,5 @@
 import { Player } from "./Player";
 import { Tile } from "./Tile";
-import { EventEmitter } from "@billjs/event-emitter";
 import { Unit } from "./Unit";
 import { AvailableMoves, Validator } from "./Validator";
 import { StateManager } from "./StateManager";
@@ -31,6 +30,11 @@ export class Game implements IGame {
     public IsCheck(): boolean {
         return this._validator.IsCheck;
     }
+
+    public IsMate(): boolean {
+        return this._validator.IsMate;
+    }
+
 
     public GetPlayerTurnColor(): Color{
         return this._stateManager.PlayerTurnColor;

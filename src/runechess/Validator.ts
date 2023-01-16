@@ -2,7 +2,7 @@ import { Tile } from "./Tile";
 import { Princess, Unit } from "./Unit";
 import { rotateMatrix90 } from "./Helpers";
 import { Game } from "./Game";
-import { Color, MoveType } from "./Enums";
+import { Color, MoveState, MoveType } from "./Enums";
 import {cloneDeep} from 'lodash';
 
 export interface AvailableMoves{
@@ -16,12 +16,18 @@ export class Validator{
     //private readonly _unitsAvailableCasts: Map<Unit, AvailableCasts>;
     private _unitsAvailableMoves: Map<Unit, AvailableMoves>;
     private _isCheck: boolean;
+    private _isMate: boolean;
+
     constructor(units: Unit[], tiles: Tile[][]) {
         this._units = units;
         this._tiles = tiles;
         this._isCheck = false;
-        //this._unitsAvailableCasts = spellManager.UnitsAvailableCasts;
+        this._isMate = false;
         this.UpdateUnitsAvailableMoves();
+    }
+
+    public get IsMate(): boolean{
+      return this._isMate;
     }
 
     public get IsCheck(): boolean{
@@ -40,10 +46,25 @@ export class Validator{
       console.time('updateUnitsAvailableMoves')
       this._unitsAvailableMoves = this.GetUnitsAvailableMoves(this._units, this._tiles);
       this._isCheck = this.checkIfCheck();
-      if(this._isCheck){
-        console.log("jednostka jest bita");
-      }
+      console.time("isMate")
+      this._isMate = this.checkIfMate();
+      console.timeEnd("isMate")
       console.timeEnd('updateUnitsAvailableMoves')
+    }
+
+    private checkIfMate(): boolean{
+      if(!this._isCheck) return false;
+      let bluePlayerMoves = 0;
+      let redPlayersMoves = 0;
+      for(const [unit, move] of this._unitsAvailableMoves){
+        if(unit.color === Color.Blue && (move.Tiles.length > 0 || move.Units.length > 0)){
+          bluePlayerMoves++;
+        }
+        if(unit.color === Color.Red && (move.Tiles.length > 0 || move.Units.length > 0)){
+          redPlayersMoves++;
+        }
+      }
+      return bluePlayerMoves === 0 || redPlayersMoves === 0
     }
 
     private checkIfCheck(): boolean{
@@ -56,6 +77,7 @@ export class Validator{
       }
       return isCheck;
     }
+
 
     public GetUnitsAvailableMoves(units: Unit[], tiles: Tile[][], omitUnitItself: boolean = false): Map<Unit, AvailableMoves>{
         let unitsAvailableMoves = new Map<Unit, AvailableMoves>();

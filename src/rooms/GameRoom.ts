@@ -48,6 +48,7 @@ export class GameRoom extends Room<GameRoomState> {
     this.state.PlayerTurnColor = this._game.GetPlayerTurnColor();
     this.state.Moves = this._game.Moves.map(x => x.toNotationString()) as ArraySchema<string>;
     this.state.IsCheck = this._game.IsCheck();
+    this.state.IsMate = this._game.IsMate();
     console.timeEnd('updateState')
   }
 
