@@ -90,7 +90,7 @@ export class Validator{
               let unitMovesResultingInCheck = this.getUnitMovesThatWouldResultInCheck(cloneDeep(unit), cloneDeep(movesAvailable));
               movesAvailable.Tiles = movesAvailable.Tiles.filter(t => !unitMovesResultingInCheck.Tiles.map(x=>x.id).includes(t.id));
               movesAvailable.Units = movesAvailable.Units.filter(u => !unitMovesResultingInCheck.Units.map(x=>x.id).includes(u.id));
-              console.log("n. of units that cant be taken becaues of princess check: " + unitMovesResultingInCheck.Units.length)
+              //console.log("n. of units that cant be taken becaues of princess check: " + unitMovesResultingInCheck.Units.length)
             }
             unitsAvailableMoves.set(unit, movesAvailable);
         })
