@@ -158,9 +158,9 @@ export class Knight extends Unit {
 export class Rogue extends Unit {
     constructor(unitColor: Color, startAt: Tile) {
         let movePattern = [
-            [1, 0, 1],
-            [0, 1, 0],
-            [1, 0, 1]
+            [Infinity, 0, Infinity],
+            [0, 0, 0],
+            [Infinity, 0, Infinity]
         ]
         
         super(unitColor, startAt, movePattern);
