@@ -64,7 +64,7 @@ export class StateManager {
         if(targetObject instanceof Unit && this._tiles[targetObject.row][targetObject.column].isDestroyed){
             targetObject.isCaptured = true;
         }
-       // castingUnit.usedSpell = true;
+        castingUnit.usedSpell = true;
        this._moves.push(new Move(castingUnit, targetObject, true))
         return this.OnTurnFinished()
     }

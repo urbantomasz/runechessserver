@@ -6,7 +6,6 @@ import { Game } from "./Game";
 import { GameObject } from "./GameObject";
 import { Validator } from "./Validator";
 import { Color } from "./Enums";
-import { clone, cloneDeep } from "lodash";
 
 export interface AvailableCasts{
     Targets: GameObject[]
@@ -18,28 +17,55 @@ export class SpellManager{
     private readonly _tiles: Tile[][];
     private readonly _stateManager: StateManager;
     private readonly _validator: Validator;
-    private _spells: Map<string, ISpell>;
+    private _spells: Map<Unit, ISpell>;
+    private _isSpellCheck: boolean;
+    private _isSpellMate: boolean;
     private _unitsAvailableCasts: Map<Unit, AvailableCasts>;
     public get UnitsAvailableCasts(): Map<Unit, AvailableCasts>{
         return this._unitsAvailableCasts;
     }
 
+    public get IsSpellMate(): boolean{
+        return this._isSpellMate;
+      }
+  
+      public get IsSpellCheck(): boolean{
+        return this._isSpellCheck;
+      }
+     
+
     constructor(units: Unit[], tiles: Tile[][], validator: Validator) {
         this._units = units;
         this._tiles = tiles;
         this._validator = validator;
+        this._isSpellCheck = false;
+        this._isSpellMate = false;
         this.initializeSpellsDictionary();
         this.UpdateUnitsAvailableCasts();
     }
 
     private initializeSpellsDictionary(){
-        this._spells = new Map<string, ISpell>();
-        this._spells.set(Princess.name, new Castle());
-        this._spells.set(King.name, new Sacrifice());
-        this._spells.set(Rogue.name, new Shadowstep());
-        this._spells.set(Priest.name, new Ressurection());
-        this._spells.set(Mage.name, new DestroyTile());
-        this._spells.set(Knight.name, new PowerStomp());
+        this._spells = new Map<Unit, ISpell>();
+        this._units.forEach(unit =>{
+            if(unit instanceof Princess){
+                this._spells.set(unit, new Castle());
+            }
+            else if(unit instanceof King){
+                this._spells.set(unit, new Sacrifice());
+            }  
+            else if(unit instanceof Rogue){
+                this._spells.set(unit, new Shadowstep());
+            }
+            else if(unit instanceof Priest){
+                this._spells.set(unit, new Ressurection());
+            }
+            else if(unit instanceof Mage){
+                this._spells.set(unit, new DestroyTile());
+            }
+            else if(unit instanceof Knight){
+                this._spells.set(unit, new PowerStomp());
+            }
+        })
     }
 
     private getUnits2DArray(): Unit[][]{
@@ -62,86 +88,106 @@ export class SpellManager{
         console.time('updateUnitsAvailableCasts')
         this._unitsAvailableCasts = new Map<Unit, AvailableCasts>();
         this._units.forEach(unit =>{
-            if(unit.usedSpell || unit.isCaptured || !this._spells.has(unit.constructor.name)){
-                //this._unitsAvailableCasts.set(unit, {Targets: []});
+            if(unit.usedSpell || unit.isCaptured || !this._spells.has(unit)){
+                this._unitsAvailableCasts.set(unit, {Targets: []});
             } else{
-                this._unitsAvailableCasts.set(unit, {Targets: this._spells.get(unit.constructor.name).GetValidTargets(unit, this)});
+                console.time("spell: " + unit.constructor.name)
+                let unitValidTargets = {Targets: this._spells.get(unit).GetValidTargets(unit, this)};
+                if(!omitCheck){
+                    this.FilterUnitCastsThatWouldResultInCheck(unit, unitValidTargets);
+                }
+                this._unitsAvailableCasts.set(unit, unitValidTargets);
+                console.timeEnd("spell: " + unit.constructor.name)
             }
         })
-        if(!omitCheck){
-            var castTargetsToRemove = this.getUnitCastsThatWouldResultInCheck();
-           // console.log("cast targets to remove size: " + castTargetsToRemove.size)
-            for(const [unit, casts] of castTargetsToRemove){
-               // console.log("n. of units that cant be taken becaues of princess check: " + casts.length)
-                this.UnitsAvailableCasts.get(unit).Targets = this.UnitsAvailableCasts.get(unit).Targets.filter(x => !casts.map(x=>x.id).includes(x.id));
-            }
-        }
         console.timeEnd('updateUnitsAvailableCasts')
+        this._isSpellCheck = this.checkIfSpellCheck();
+        this._isSpellMate = this.checkIfSpellMate();
     }
 
-    // public CheckForSpellCheck(): boolean{
-    //     let isSpellCheck = false;
-    //     for (let [unit, availableCasts] of this.UnitsAvailableCasts) {
-    //         if(availableCasts.Targets.length === 0) continue;
-    //         const unitSpell = this._spells[unit.constructor.name]
-    //         if(unitSpell instanceof Shadowstep && availableCasts.Targets.find(u => u instanceof Princess)){
-    //             isSpellCheck = true;
-    //         }
-    //         if(unitSpell instanceof PowerStomp){
-    //             for (let [unit, tile] of unitSpell.TilesBehindMap) {
-    //                 if(unit instanceof Princess && tile.isDestroyed === true){
-    //                     isSpellCheck = true;
-    //                 }
-    //             }
-    //         }
-    //         }
-    //     return isSpellCheck;
-    //   }
-
-    getUnitCastsThatWouldResultInCheck(): Map<Unit, GameObject[]>{
-        let unitsTargetsToRemoveMap = new Map<Unit, GameObject[]>();
-        for (const [castingUnit, availableCasts] of this._unitsAvailableCasts) {
-            if(availableCasts.Targets.length === 0 || (castingUnit instanceof Knight) || castingUnit instanceof Rogue) continue;
-            let targetsToRemove = [] as GameObject[];
-            availableCasts.Targets.forEach(targetObject => {
-                let spellManagerCopy = cloneDeep(this)
-                //spellManagerCopy.UpdateUnitsAvailableCasts(true);
-                let targetObjectCopy: GameObject = spellManagerCopy._units.find(u => u.row === targetObject.row && u.column === targetObject.column);
-                
-                if(targetObjectCopy === undefined){
-                    targetObjectCopy = spellManagerCopy._tiles[targetObject.row][targetObject.column];
-                }
-
-                let princessCopy = spellManagerCopy._units.find(u => u instanceof Princess && u.color === castingUnit.color);
-                
-                let castingUnitCopy =  spellManagerCopy._units.find(u => u.row === castingUnit.row && u.column === castingUnit.column);
-                
-                spellManagerCopy._spells.get(castingUnitCopy.constructor.name).GetValidTargets(castingUnitCopy, spellManagerCopy);
-                spellManagerCopy._spells.get(castingUnitCopy.constructor.name).Cast(castingUnitCopy, targetObjectCopy, spellManagerCopy);
-                
-                if(spellManagerCopy._tiles[castingUnitCopy.row][castingUnitCopy.column].isDestroyed){
-                    castingUnitCopy.isCaptured = true;
-                }
-                if(targetObjectCopy instanceof Unit && spellManagerCopy._tiles[targetObjectCopy.row][targetObjectCopy.column].isDestroyed){
-                    targetObjectCopy.isCaptured = true;
-                }
-                let availableMovesAfterCast = this._validator.GetUnitsAvailableMoves(spellManagerCopy._units, spellManagerCopy._tiles, true);
-                for(const [unit, moves] of availableMovesAfterCast){
-                    if(unit.color === princessCopy.color) continue;
-                    if(moves.Units.includes(princessCopy) || princessCopy.isCaptured){
-                        targetsToRemove.push(targetObjectCopy);
-                      break;
-                    }
-                  }
-            })
-            unitsTargetsToRemoveMap.set(castingUnit, targetsToRemove);
+    private checkIfSpellMate(): boolean{
+        let bluePlayerMoves = 0;
+        let redPlayersMoves = 0;
+        for(const [unit, cast] of this._unitsAvailableCasts){
+          if(unit.color === Color.Blue && (cast.Targets.length > 0)){
+            bluePlayerMoves++;
+          }
+          if(unit.color === Color.Red && (cast.Targets.length > 0)){
+            redPlayersMoves++;
+          }
         }
-        return unitsTargetsToRemoveMap;
+        return bluePlayerMoves === 0 || redPlayersMoves === 0
+      }
+
+    private checkIfSpellCheck(): boolean{
+        let isSpellCheck = false;
+        for (let [unit, availableCasts] of this.UnitsAvailableCasts) {
+            if(availableCasts.Targets.length === 0) continue;
+            const unitSpell = this._spells.get(unit);
+            if(unitSpell instanceof Shadowstep && availableCasts.Targets.find(u => u instanceof Princess)){
+                isSpellCheck = true;
+            }
+            // if(unitSpell instanceof PowerStomp){
+            //     for (let [unit, tile] of unitSpell._tilesBehindMap.get(unit)) {
+            //         if(unit instanceof Princess && tile.isDestroyed === true){
+            //             isSpellCheck = true;
+            //         }
+            //     }
+            // }
+            }
+        return isSpellCheck;
+      }
+
+    FilterUnitCastsThatWouldResultInCheck(castingUnit: Unit, unitsAvailableCasts: AvailableCasts): void{
+        let targetsToRemove = [] as GameObject[];
+        let princess = this._units.find(u => u instanceof Princess && u.color === castingUnit.color);
+           
+        unitsAvailableCasts.Targets.forEach(targetObject => {
+
+            let unitSpell = this._spells.get(castingUnit)
+            unitSpell.Cast(castingUnit, targetObject, this);
+            
+            if(this._tiles[castingUnit.row][castingUnit.column].isDestroyed){
+                castingUnit.isCaptured = true;
+            }
+
+            if(targetObject instanceof Unit && this._tiles[targetObject.row][targetObject.column].isDestroyed){
+                targetObject.isCaptured = true;
+            }
+
+            let availableMovesAfterCast = this._validator.GetUnitsAvailableMoves(this._units, this._tiles, true);
+
+
+            //todo optymalizacja maga i kinga
+            // w przypadku maga wystarczy policzyc tylko raz na strone zamiast x4
+
+            for(const [unit, moves] of availableMovesAfterCast){
+                if(unit.color === princess.color) continue;
+                if(moves.Units.includes(princess) || princess.isCaptured){
+                    targetsToRemove.push(targetObject);
+                    break;
+                }
+            }
+
+            // TODO: upewnic sie ze tak am to wygladac i zdecydowac na sprawdzanei tego podczas castu lub przy wykonywaniu ruchu
+            if(!this._tiles[castingUnit.row][castingUnit.column].isDestroyed){
+                castingUnit.isCaptured = false;
+            }
+
+            if(targetObject instanceof Unit && !this._tiles[targetObject.row][targetObject.column].isDestroyed){
+                targetObject.isCaptured = false;
+            }
+
+            unitSpell.Undo();
+        })
+
+        unitsAvailableCasts.Targets = unitsAvailableCasts.Targets.filter(t => !targetsToRemove.includes(t));
+        
     }
 
     public CastSpell(castingUnit: Unit, targetObject: GameObject){
         //console.log("cast spell test")
-        this._spells.get(castingUnit.constructor.name).Cast(castingUnit, targetObject, this);
+        this._spells.get(castingUnit).Cast(castingUnit, targetObject, this);
     }
 
     CastSwapCastables(castingUnit: Unit, targetingUnit: Unit){

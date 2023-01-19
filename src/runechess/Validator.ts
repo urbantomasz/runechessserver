@@ -3,7 +3,6 @@ import { Princess, Unit } from "./Unit";
 import { rotateMatrix90 } from "./Helpers";
 import { Game } from "./Game";
 import { Color, MoveState, MoveType } from "./Enums";
-import {cloneDeep} from 'lodash';
 
 export interface AvailableMoves{
     Tiles: Tile[]
@@ -79,18 +78,14 @@ export class Validator{
     }
 
 
-    public GetUnitsAvailableMoves(units: Unit[], tiles: Tile[][], omitUnitItself: boolean = false): Map<Unit, AvailableMoves>{
+    public GetUnitsAvailableMoves(units: Unit[], tiles: Tile[][], omitCheck: boolean = false): Map<Unit, AvailableMoves>{
         let unitsAvailableMoves = new Map<Unit, AvailableMoves>();
 
         units.forEach(unit =>{
             if(unit.isCaptured) return;
             let movesAvailable = this.getUnitAvailableMoves(unit,  units.filter(u => !u.isCaptured), tiles);
-            if(!omitUnitItself){
-              // TODO: optimaze this part and make units a 2d array for faster checking
-              let unitMovesResultingInCheck = this.getUnitMovesThatWouldResultInCheck(cloneDeep(unit), cloneDeep(movesAvailable));
-              movesAvailable.Tiles = movesAvailable.Tiles.filter(t => !unitMovesResultingInCheck.Tiles.map(x=>x.id).includes(t.id));
-              movesAvailable.Units = movesAvailable.Units.filter(u => !unitMovesResultingInCheck.Units.map(x=>x.id).includes(u.id));
-              //console.log("n. of units that cant be taken becaues of princess check: " + unitMovesResultingInCheck.Units.length)
+            if(!omitCheck){
+              this.FilterUnitMovesThatWouldResultInCheck(unit, movesAvailable);
             }
             unitsAvailableMoves.set(unit, movesAvailable);
         })
@@ -168,7 +163,10 @@ export class Validator{
         } 
 
         units.forEach(u =>{
-          unitsPlacement[u.row][u.column]= 1;
+          if(u.row === undefined){
+            console.log(u);
+          }
+          unitsPlacement[u.row][u.column] = 1;
         })
 
         return unitsPlacement
@@ -205,51 +203,47 @@ export class Validator{
         }
       }
       
-      getUnitMovesThatWouldResultInCheck(unit: Unit, unitMovesAvailable: AvailableMoves): AvailableMoves {
-        let _this = this;
+      FilterUnitMovesThatWouldResultInCheck(unit: Unit, unitMovesAvailable: AvailableMoves): void {
         let tilesToRemove = [] as Tile[];
         let unitsToRemove = [] as Unit[];
-        
+        let unitStartingRow = unit.row;
+        let unitStartingColumn = unit.column;
+        let princess = this._units.find(u => u instanceof Princess && u.color === unit.color);
+
         unitMovesAvailable.Tiles.forEach(tile => {
-          let unitsArrayCopy = cloneDeep(_this._units);
-          let tilesArrayCopy = cloneDeep(_this._tiles)
-          let princessCopy = unitsArrayCopy.find(u => u instanceof Princess && u.color === unit.color);
-          let unitsCopy =  unitsArrayCopy.find(u => u.row === unit.row && u.column === unit.column);
-          unitsCopy.row = tile.row
-          unitsCopy.column = tile.column
-          let availableMovesAfterMove = this.GetUnitsAvailableMoves(unitsArrayCopy, tilesArrayCopy, true);
+          unit.row = tile.row
+          unit.column = tile.column
+          let availableMovesAfterMove = this.GetUnitsAvailableMoves(this._units, this._tiles, true);
           for(const [unit, moves] of availableMovesAfterMove){
-            if(unit.color === princessCopy.color) continue;
-            if(moves.Units.includes(princessCopy)){
+            if(unit.color === princess.color) continue;
+            if(moves.Units.includes(princess)){
               tilesToRemove.push(tile);
               break;
             }
           }
+          unit.row = unitStartingRow;
+          unit.column = unitStartingColumn;
         });
       
         unitMovesAvailable.Units.forEach(enemyUnit => {
-          let unitsArrayCopy = cloneDeep(_this._units)
-          let tilesArrayCopy = cloneDeep(_this._tiles)
-          let princessCopy = unitsArrayCopy.find(u => u instanceof Princess && u.color === unit.color);
-          let unitsCopy =  unitsArrayCopy.find(u => u.row === unit.row && u.column === unit.column);
-          let enemyUnitCopy =  unitsArrayCopy.find(u => u.row === enemyUnit.row && u.column === enemyUnit.column);
-          unitsCopy.row = enemyUnit.row
-          unitsCopy.column = enemyUnit.column
-          enemyUnitCopy.isCaptured = true;
-          tilesArrayCopy[enemyUnit.row][enemyUnit.column].lastCapturedUnit = enemyUnit;
-          let availableMovesAfterTake = this.GetUnitsAvailableMoves(unitsArrayCopy, tilesArrayCopy, true);
+          unit.row = enemyUnit.row
+          unit.column = enemyUnit.column
+          enemyUnit.isCaptured = true;
+          //this._tiles[enemyUnit.row][enemyUnit.column].lastCapturedUnit = enemyUnit;
+          let availableMovesAfterTake = this.GetUnitsAvailableMoves(this._units, this._tiles, true);
           for(const [unit, moves] of availableMovesAfterTake){
-            if(unit.color === princessCopy.color) continue;
-            if(moves.Units.includes(princessCopy)){
+            if(unit.color === princess.color) continue;
+            if(moves.Units.includes(princess)){
               unitsToRemove.push(enemyUnit);
               break;
             }
           }
+          enemyUnit.isCaptured = false;
+          unit.row = unitStartingRow;
+          unit.column = unitStartingColumn;
         });
 
-        unitMovesAvailable.Tiles = unitMovesAvailable.Tiles.filter(t => tilesToRemove.includes(t));
-        unitMovesAvailable.Units = unitMovesAvailable.Units.filter(u => unitsToRemove.includes(u));
-
-        return unitMovesAvailable;
+        unitMovesAvailable.Tiles = unitMovesAvailable.Tiles.filter(t => !tilesToRemove.includes(t));
+        unitMovesAvailable.Units = unitMovesAvailable.Units.filter(u => !unitsToRemove.includes(u));
       }
 }

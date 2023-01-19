@@ -50,6 +50,10 @@ export class GameRoom extends Room<GameRoomState> {
     this.state.IsCheck = this._game.IsCheck();
     this.state.IsMate = this._game.IsMate();
     console.timeEnd('updateState')
+
+    if(this.state.IsMate){
+      this.broadcast("GameOver", {winnerColor: this.state.PlayerTurnColor === 0 ? 1 : 0});
+    }
   }
 
   private initializeState(){
@@ -127,10 +131,6 @@ export class GameRoom extends Room<GameRoomState> {
         this.broadcast("SpellCasted");
       };
     })
-
-    this.onMessage("QueenCaptured", (client, data) =>{
-      this.broadcast("GameOver");
-    });
   }
 
   onLeave (client: Client, consented: boolean) {
