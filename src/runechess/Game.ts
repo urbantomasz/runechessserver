@@ -28,13 +28,13 @@ export class Game implements IGame {
     };
 
     public IsCheck(): boolean {
-        //return this._validator.IsCheck || this._spellManager.IsSpellCheck;
-        return true;
+        return this._validator.IsCheck || this._spellManager.IsSpellCheck;
+        //return true;
     }
 
     public IsMate(): boolean {
-        //return this._validator.IsMate && this._spellManager.IsSpellMate;
-        return true;
+        return this._validator.IsMate && this._spellManager.IsSpellMate;
+        //return true;
     }
 
 
