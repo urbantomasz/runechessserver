@@ -107,7 +107,7 @@ export class GameRoom extends Room<GameRoomState> {
      this.clock.start();
     
     this.onMessage("TryMoveUnit", (client, data) =>{
-      if(!this._isPlayground && !(client.id === (this._game.GetPlayerTurnColor() === Color.Blue ? this._bluePlayerId : this._redPlayerId))) return;
+      //if(!this._isPlayground && !(client.id === (this._game.GetPlayerTurnColor() === Color.Blue ? this._bluePlayerId : this._redPlayerId))) return;
       if(this._game.TryMoveUnit(data.selectedUnit, data.tile)){
         //console.log(this._game.GetPlayerTurnColor())
        this.updateState();
@@ -116,7 +116,7 @@ export class GameRoom extends Room<GameRoomState> {
     })
 
     this.onMessage("TryCaptureUnit", (client, data) =>{
-      if(!this._isPlayground && !(client.id === (this._game.GetPlayerTurnColor() === Color.Blue ? this._bluePlayerId : this._redPlayerId))) return;
+      //if(!this._isPlayground && !(client.id === (this._game.GetPlayerTurnColor() === Color.Blue ? this._bluePlayerId : this._redPlayerId))) return;
       if(this._game.TryCaptureUnit(data.selectedUnit, data.capturingUnit)){
        this.updateState();
        this.broadcast("UnitCaptured");
@@ -125,7 +125,7 @@ export class GameRoom extends Room<GameRoomState> {
 
     this.onMessage("TryCastingSpell", (client, data) =>{
       //console.log("try casting spell game")
-      if(!this._isPlayground && !(client.id === (this._game.GetPlayerTurnColor() === Color.Blue ? this._bluePlayerId : this._redPlayerId))) return;
+      //if(!this._isPlayground && !(client.id === (this._game.GetPlayerTurnColor() === Color.Blue ? this._bluePlayerId : this._redPlayerId))) return;
       if(this._game.TryCastingSpell(data.castingUnit, data.targetingUnit)){
         this.updateState();
         this.broadcast("SpellCasted");
