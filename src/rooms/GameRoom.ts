@@ -127,8 +127,8 @@ export class GameRoom extends Room<GameRoomState> {
       //console.log("try casting spell game")
       //if(!this._isPlayground && !(client.id === (this._game.GetPlayerTurnColor() === Color.Blue ? this._bluePlayerId : this._redPlayerId))) return;
       if(this._game.TryCastingSpell(data.castingUnit, data.targetingUnit)){
+        this.broadcast("SpellCasted", { castingUnit: data.castingUnit, targetingUnit: data.targetingUnit});
         this.updateState();
-        this.broadcast("SpellCasted");
       };
     })
   }
