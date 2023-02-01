@@ -111,7 +111,7 @@ export class GameRoom extends Room<GameRoomState> {
       if(this._game.TryMoveUnit(data.selectedUnit, data.tile)){
         //console.log(this._game.GetPlayerTurnColor())
        this.updateState();
-       this.broadcast("UnitMoved");
+       this.broadcast("UnitMoved", {selectedUnit: data.selectedUnit, tile: data.tile});
       }
     })
 
@@ -119,7 +119,7 @@ export class GameRoom extends Room<GameRoomState> {
       //if(!this._isPlayground && !(client.id === (this._game.GetPlayerTurnColor() === Color.Blue ? this._bluePlayerId : this._redPlayerId))) return;
       if(this._game.TryCaptureUnit(data.selectedUnit, data.capturingUnit)){
        this.updateState();
-       this.broadcast("UnitCaptured");
+       this.broadcast("UnitCaptured", {selectedUnit: data.selectedUnit, capturedUnit: data.capturingUnit});
       };
     })
 

@@ -129,6 +129,7 @@ export class Ressurection implements ISpell{
 
 export class DestroyTile implements ISpell{
     _targetingTile: Tile;
+    _targeTileLastCapturedUnit: Unit;
 
     GetValidTargets(castingUnit: Unit, spellManager: SpellManager): Tile[] {
         return spellManager.GetUnoccupiedTiles();
@@ -136,11 +137,13 @@ export class DestroyTile implements ISpell{
 
     Cast(castingUnit: Unit, target: GameObject, spellManager: SpellManager){
         this._targetingTile = target as Tile;
+        this._targeTileLastCapturedUnit = this._targetingTile.lastCapturedUnit;
         spellManager.CastDestroyTile(target as Tile);
     }
 
     Undo(){
         this._targetingTile.isDestroyed = false;
+        this._targetingTile.lastCapturedUnit = this._targeTileLastCapturedUnit;
     }
 }
 

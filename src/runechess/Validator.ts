@@ -229,7 +229,8 @@ export class Validator{
           unit.row = enemyUnit.row
           unit.column = enemyUnit.column
           enemyUnit.isCaptured = true;
-          //this._tiles[enemyUnit.row][enemyUnit.column].lastCapturedUnit = enemyUnit;
+          const lastCapturedUnitCopy = this._tiles[enemyUnit.row][enemyUnit.column].lastCapturedUnit;
+          this._tiles[enemyUnit.row][enemyUnit.column].lastCapturedUnit = enemyUnit;
           let availableMovesAfterTake = this.GetUnitsAvailableMoves(this._units, this._tiles, true);
           for(const [unit, moves] of availableMovesAfterTake){
             if(unit.color === princess.color) continue;
@@ -238,6 +239,8 @@ export class Validator{
               break;
             }
           }
+
+          this._tiles[enemyUnit.row][enemyUnit.column].lastCapturedUnit = lastCapturedUnitCopy;
           enemyUnit.isCaptured = false;
           unit.row = unitStartingRow;
           unit.column = unitStartingColumn;
