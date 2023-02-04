@@ -25,6 +25,10 @@ export class SpellManager{
         return this._unitsAvailableCasts;
     }
 
+    public get Spells(): Map<Unit, ISpell>{
+        return this._spells;
+    }
+
     public get IsSpellMate(): boolean{
         return this._isSpellMate;
       }

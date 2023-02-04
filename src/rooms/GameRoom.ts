@@ -3,8 +3,10 @@ import { Room, Client, Delayed, Clock } from "colyseus";
 import { Color } from "../runechess/Enums";
 import { Game } from "../runechess/Game";
 import { IGame } from "../runechess/Interfaces";
+import { PowerStomp } from "../runechess/Spell";
 import { AvailableCasts } from "../runechess/SpellManager";
-import { Unit } from "../runechess/Unit";
+import { Tile } from "../runechess/Tile";
+import { Knight, Unit } from "../runechess/Unit";
 import { AvailableMoves } from "../runechess/Validator";
 import { AvailableCastsSchema, AvailableMovesSchema, GameRoomState, TileSchema, UnitSchema } from "./schema/GameRoomState";
 
@@ -126,10 +128,28 @@ export class GameRoom extends Room<GameRoomState> {
     this.onMessage("TryCastingSpell", (client, data) =>{
       //console.log("try casting spell game")
       //if(!this._isPlayground && !(client.id === (this._game.GetPlayerTurnColor() === Color.Blue ? this._bluePlayerId : this._redPlayerId))) return;
-      if(this._game.TryCastingSpell(data.castingUnit, data.targetingUnit)){
-        this.broadcast("SpellCasted", { castingUnit: data.castingUnit, targetingUnit: data.targetingUnit});
+      
+      const castingUnit = this._game.GetGameObjectById(data.castingUnit) as Unit;
+
+      if(castingUnit instanceof Knight){
+        const unitSpell = this._game.Spells.get(castingUnit) as PowerStomp;
+        const targetingTile = this._game.GetGameObjectById(data.targetingObject) as Tile;
+        let unitTileMap = new Map<string, {row: number, column: number}>();
+        unitSpell._tilesBehindMap.get(targetingTile).forEach((v,k) =>{
+          unitTileMap.set(k.id, {row: v.row, column: v.column})
+        })
+        let unitTileMapStringifed = JSON.stringify(Array.from(unitTileMap.entries()));
+        if(this._game.TryCastingSpell(data.castingUnit, data.targetingObject)){
+          this.broadcast("SpellCasted", { castingUnit: data.castingUnit, targetingTile: data.targetingObject, unitTileMap: unitTileMapStringifed});
+        }
+       
         this.updateState();
-      };
+      } else{
+        if(this._game.TryCastingSpell(data.castingUnit, data.targetingObject)){
+          this.broadcast("SpellCasted", { castingUnit: data.castingUnit, targetingUnit: data.targetingObject});
+        }
+      }
+      this.updateState();
     })
   }
 

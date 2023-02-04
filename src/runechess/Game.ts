@@ -8,6 +8,7 @@ import { Color } from "./Enums";
 import { GameObject } from "./GameObject";
 import { IGame } from "./Interfaces";
 import { Move } from "./Move";
+import { ISpell } from "./Spell";
 //todo move some subclasses to game maybe as interfaces or abstract classes 
 export class Game implements IGame {
     public static BOARD_ROWS = 8;
@@ -27,6 +28,8 @@ export class Game implements IGame {
         
     };
 
+
+
     public IsCheck(): boolean {
         return this._validator.IsCheck || this._spellManager.IsSpellCheck;
         //return true;
@@ -44,22 +47,22 @@ export class Game implements IGame {
 
     public TryMoveUnit(selectedUnitId: string, tileId: string): boolean{
         return this._stateManager.TryMoveUnit(
-            this.getGameObjectById(selectedUnitId) as Unit,
-            this.getGameObjectById(tileId) as Tile
+            this.GetGameObjectById(selectedUnitId) as Unit,
+            this.GetGameObjectById(tileId) as Tile
         );
     }
 
     public TryCaptureUnit(selectedUnitId: string, capturingUnitId: string): boolean{
         return this._stateManager.TryTakeUnit(
-            this.getGameObjectById(selectedUnitId) as Unit,
-            this.getGameObjectById(capturingUnitId) as Unit
+            this.GetGameObjectById(selectedUnitId) as Unit,
+            this.GetGameObjectById(capturingUnitId) as Unit
         );
     }
 
     public TryCastingSpell(castingUnitId: string, targetUnitId: string): boolean{
         return this._stateManager.TryCastingSpell(
-            this.getGameObjectById(castingUnitId) as Unit,
-            this.getGameObjectById(targetUnitId) as Unit,
+            this.GetGameObjectById(castingUnitId) as Unit,
+            this.GetGameObjectById(targetUnitId) as Unit,
             );
     }
 
@@ -76,6 +79,10 @@ export class Game implements IGame {
             }
         }
         return tiles;
+    }
+
+    public get Spells(): Map<Unit, ISpell>{
+        return this._spellManager.Spells;
     }
 
     public get Tiles(): Tile[][]{
@@ -98,7 +105,7 @@ export class Game implements IGame {
         return this._spellManager.UnitsAvailableCasts;
     }
 
-    private getGameObjectById(id: string): GameObject{
+    public GetGameObjectById(id: string): GameObject{
         if(id.includes("unit")){
             return this._stateManager.GetUnitById(id);
         }
@@ -107,7 +114,6 @@ export class Game implements IGame {
             return this._stateManager.GetTileById(id);
         }
             
-
         return null;
     }
 
