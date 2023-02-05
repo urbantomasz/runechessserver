@@ -142,14 +142,13 @@ export class GameRoom extends Room<GameRoomState> {
         if(this._game.TryCastingSpell(data.castingUnit, data.targetingObject)){
           this.broadcast("SpellCasted", { castingUnit: data.castingUnit, targetingTile: data.targetingObject, unitTileMap: unitTileMapStringifed});
         }
-       
         this.updateState();
       } else{
         if(this._game.TryCastingSpell(data.castingUnit, data.targetingObject)){
+          this.updateState();
           this.broadcast("SpellCasted", { castingUnit: data.castingUnit, targetingUnit: data.targetingObject});
         }
       }
-      this.updateState();
     })
   }
 
