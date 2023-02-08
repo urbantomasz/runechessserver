@@ -31,8 +31,8 @@ export class Player{
             new King(this.color, new Tile(startingRow, Column.D)),
             new Princess(this.color, new Tile(startingRow, Column.E)),
             new Priest(this.color, new Tile(startingRow, Column.F)),
-            new Knight(this.color, new Tile(startingRow, Column.G)),
-            new Rogue(this.color, new Tile(startingRow, Column.H)),
+            new Rogue(this.color, new Tile(startingRow, Column.G)),
+            new Knight(this.color, new Tile(startingRow, Column.H)),
             new Mage(this.color, new Tile(startingRow, Column.I)),
         )
 

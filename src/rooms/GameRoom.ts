@@ -6,8 +6,9 @@ import { IGame } from "../runechess/Interfaces";
 import { PowerStomp } from "../runechess/Spell";
 import { AvailableCasts } from "../runechess/SpellManager";
 import { Tile } from "../runechess/Tile";
-import { Knight, Unit } from "../runechess/Unit";
+import { Knight, Princess, Rogue, Unit } from "../runechess/Unit";
 import { AvailableMoves } from "../runechess/Validator";
+import { Position } from "../runechess/Position";
 import { AvailableCastsSchema, AvailableMovesSchema, GameRoomState, TileSchema, UnitSchema } from "./schema/GameRoomState";
 
 export class GameRoom extends Room<GameRoomState> {
@@ -25,7 +26,7 @@ export class GameRoom extends Room<GameRoomState> {
     this.initializeState()
   }
 
-  private updateState(){
+  private async updateState(){
     console.time('updateState')
     let currentMoveTimeStamp = Date.now();
 
@@ -142,13 +143,36 @@ export class GameRoom extends Room<GameRoomState> {
         if(this._game.TryCastingSpell(data.castingUnit, data.targetingObject)){
           this.broadcast("SpellCasted", { castingUnit: data.castingUnit, targetingTile: data.targetingObject, unitTileMap: unitTileMapStringifed});
         }
-        this.updateState();
-      } else{
+      } else if(castingUnit instanceof Princess){
         if(this._game.TryCastingSpell(data.castingUnit, data.targetingObject)){
-          this.updateState();
-          this.broadcast("SpellCasted", { castingUnit: data.castingUnit, targetingUnit: data.targetingObject});
+          const castingUnit = this._game.GetGameObjectById(data.castingUnit);
+          const targetingUnit = this._game.GetGameObjectById(data.targetingObject);
+          this.broadcast("SpellCasted", { 
+            castingUnit: data.castingUnit,
+            castingUnitNewPosition: new Position(castingUnit.column, castingUnit.row),
+            targetingUnit: data.targetingObject,
+            targetingUnitNewPosition: new Position(targetingUnit.column, targetingUnit.row),
+          }
+          );
         }
       }
+      else if(castingUnit instanceof Rogue){
+        if(this._game.TryCastingSpell(data.castingUnit, data.targetingObject)){
+          const castingUnit = this._game.GetGameObjectById(data.castingUnit);
+          const targetingUnit = this._game.GetGameObjectById(data.targetingObject);
+          this.broadcast("SpellCasted", { 
+            castingUnit: data.castingUnit,
+            castingUnitNewPosition: new Position(castingUnit.column, castingUnit.row),
+            targetingUnit: data.targetingObject,
+            targetingUnitNewPosition: new Position(targetingUnit.column, targetingUnit.row),
+          }
+          );
+        }
+      }
+      else{
+        this.broadcast("SpellCasted", { castingUnit: data.castingUnit, targetingUnit: data.targetingObject});
+      }
+      this.updateState();
     })
   }
 
