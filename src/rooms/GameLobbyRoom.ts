@@ -9,12 +9,14 @@ export class LobbyRoom extends Room<LobbyRoomSchema> {
 }
   onCreate(options: any) {
 
-    this.onMessage("JoinQueue", async (client, data) =>{
+    this.onMessage("RequestPlayground", async (client, data) =>{
+      let playgroundRoom = await matchMaker.createRoom("GameRoom", {isPlayground: true});
+      let reservation = await matchMaker.reserveSeatFor(playgroundRoom, {});
+      client.send("PlaygroundReservation", reservation);
+    })
 
-      
-      if(this.state.playersSearchingIds.includes(client.id)){
-        this.IfExistsRemoveClientFromQueue(client);
-      } else{
+    this.onMessage("JoinQueue", async (client, data) =>{
+      if(!this.state.playersSearchingIds.includes(client.id)){
         this.state.playersSearchingIds.push(client.id);
       }
 
@@ -22,7 +24,7 @@ export class LobbyRoom extends Room<LobbyRoomSchema> {
     })
   };
 
-   redistributeGroups() {
+   async redistributeGroups() {
 
     if(this.state.playersSearchingIds.length >= 2){
       while(this.state.playersSearchingIds.length >= 2){
@@ -30,13 +32,13 @@ export class LobbyRoom extends Room<LobbyRoomSchema> {
         let clientRedId = this.state.playersSearchingIds.pop();
         let clientBlue = this.clients.find(client => client.id === clientBlueId); 
         let clientRed = this.clients.find(client => client.id === clientRedId); 
-        clientBlue.send("JoinGame", 0);
-        clientRed.send("JoinGame", 1);
-        // let gameRoom = await matchMaker.createRoom("GameRoom", {isPlayground: false})
-        // await matchMaker.reserveSeatFor(gameRoom, clientBlueId)
-        // await matchMaker.reserveSeatFor(gameRoom, clientRedId)
-        // clientBlue.send("SeatReserved", gameRoom);
-        // clientRed.send("SeatReserved", gameRoom);
+        // clientBlue.send("JoinGame", 0);
+        // clientRed.send("JoinGame", 1);
+        let gameRoom = await matchMaker.createRoom("GameRoom", {isPlayground: false});
+        let blueReservation = await matchMaker.reserveSeatFor(await gameRoom, {})
+        let redReservation = await matchMaker.reserveSeatFor(await gameRoom, {})
+        clientBlue.send("SeatReservation", blueReservation);
+        clientRed.send("SeatReservation", redReservation);
       }
     }
   }
@@ -52,6 +54,7 @@ export class LobbyRoom extends Room<LobbyRoomSchema> {
   }
 
   onLeave(client: Client, consented: boolean) {
+    console.log(client.id + "leaved the room");
     this.IfExistsRemoveClientFromQueue(client);
     this.state.players.delete(client.id);
   }

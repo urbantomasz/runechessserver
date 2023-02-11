@@ -71,22 +71,18 @@ export class GameRoom extends Room<GameRoomState> {
 
   onJoin(client: Client, options?: any, auth?: any): void | Promise<any> {
 
-    console.log(client.id + " join the room with option: " + options.playerColor)
+    console.log(client.id + " joined to gameroom");
 
-    let playerColor = options.playerColor;
-
-    if(this._bluePlayerId === null && playerColor === 0){
+    if(this._bluePlayerId === null){
       this._bluePlayerId = client.id;
     }
-
-    if(this._redPlayerId === null && playerColor === 1){
+    else if(this._redPlayerId === null){
       this._redPlayerId = client.id; 
     }
      
     if(this.clients.length == 2 && this._bluePlayerId !== null && this._redPlayerId !== null){
-      console.log("broadcasting message")
       this.broadcast("GameStart");
-    } else if(options.isPlayground){
+    } else if(this._isPlayground){
       this.broadcast("GameStart");
     }
 
@@ -97,12 +93,14 @@ export class GameRoom extends Room<GameRoomState> {
   
 
     this.maxClients = 2;
-    if(options.isPlayground){
-      this.maxClients = 1;
-    }
+ 
 
     if(options.hasOwnProperty("isPlayground")){
       console.log("isplayground value: " + options.isPlayground)
+      if(options.isPlayground){
+        this.maxClients = 1;
+        this.setPrivate();
+      }
       this._isPlayground = options.isPlayground;
     }
 
