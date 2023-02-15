@@ -12,12 +12,12 @@ export class Tile extends GameObject{
         super();
         this.row = row;
         this.column = column;
-        this.id = this.getTileId();
+        this.id = this.getId();
         this.isDestroyed = false;
         this.lastCapturedUnit = null;
     }
     
-    private getTileId(): string {
+    private getId(): string {
         return "tile_".concat(this.row.toString(), this.column.toString());
     }
 
