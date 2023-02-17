@@ -40,6 +40,9 @@ export class Game implements IGame {
         //return true;
     }
 
+    public MakeBotMove(): void {
+        
+    }
 
     public GetPlayerTurnColor(): Color{
         return this._stateManager.PlayerTurnColor;

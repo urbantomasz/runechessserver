@@ -205,7 +205,7 @@ export class SpellManager{
             else {
                 castingUnit.row =  targetingUnit.row
                 targetingUnit.row = targetingUnit.row + 1 * Math.sign(tilesDifferences)
-            } 
+            }
         }
 
         if(castingUnit.row === targetingUnit.row){
@@ -220,6 +220,8 @@ export class SpellManager{
                 targetingUnit.column = targetingUnit.column + 1 * Math.sign(tilesDifferences)
             } 
         }
+      
+        targetingUnit.isMoved = true;
     }
 
     SwapUnits(unit: Unit, unit2: Unit): void{
@@ -440,8 +442,10 @@ export class SpellManager{
         return ressurectableUnits
     };
 
-    public CastRessurection(castingUnit: Unit, targetUnit: Unit){
+    public CastRessurection(castingUnit: Unit, targetUnit: Unit): Tile{
         targetUnit.isCaptured = false;
         targetUnit.color = castingUnit.color;
+        this._tiles[targetUnit.row][targetUnit.column].lastCapturedUnit = null;
+        return this._tiles[targetUnit.row][targetUnit.column];
     }
 }

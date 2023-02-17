@@ -22,6 +22,7 @@ export class Castle implements ISpell{
     _castingUnitStartingColumn: number;
     _targetUnitStartingRow: number;
     _targetUnitStartingColumn: number;
+    _targetUnitIsMoved: boolean;
 
     GetValidTargets(castingUnit: Unit, spellManager: SpellManager): GameObject[] {
         return spellManager.GetSwapCastables(castingUnit);
@@ -34,7 +35,7 @@ export class Castle implements ISpell{
         this._castingUnitStartingColumn = castingUnit.column;
         this._targetUnitStartingRow = targetUnit.row;
         this._targetUnitStartingColumn = targetUnit.column;
-
+        this._targetUnitIsMoved = (<Unit>targetUnit).isMoved;
         spellManager.CastSwapCastables(castingUnit, targetUnit as Unit);
     }
 
@@ -43,6 +44,7 @@ export class Castle implements ISpell{
     this._castingUnit.column = this._castingUnitStartingColumn;
     this._targetUnit.row = this._targetUnitStartingRow
     this._targetUnit.column = this._targetUnitStartingColumn;
+    (<Unit>this._targetUnit).isMoved = this._targetUnitIsMoved;
     }
 }
 
@@ -109,6 +111,7 @@ export class Shadowstep implements ISpell{
 export class Ressurection implements ISpell{
     _targetUnit: Unit;
     _targetUnitColor: Color;
+    _targetTile: Tile;
 
     GetValidTargets(castingUnit: Unit, spellManager: SpellManager): Unit[] {
         return spellManager.GetResurrectionCastables(castingUnit);
@@ -117,13 +120,13 @@ export class Ressurection implements ISpell{
     Cast(castingUnit: Unit, target: GameObject, spellManager: SpellManager){
         this._targetUnit = target as Unit;
         this._targetUnitColor = this._targetUnit.color;
-
-        spellManager.CastRessurection(castingUnit, target as Unit);
+        this._targetTile = spellManager.CastRessurection(castingUnit, target as Unit);
     }
 
     Undo(){
         this._targetUnit.isCaptured = true;
         this._targetUnit.color = this._targetUnitColor;
+        this._targetTile.lastCapturedUnit = this._targetUnit;
     }
 }
 

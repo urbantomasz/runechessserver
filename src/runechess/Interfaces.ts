@@ -21,4 +21,5 @@ export interface IGame{
     TryMoveUnit: (selectedUnitId: string, tileId: string) => boolean;
     TryCaptureUnit: (selectedUnitId: string, capturingUnitId: string) => boolean;
     TryCastingSpell: (castingUnitId: string, targetUnitId: string) => boolean;
+    MakeBotMove(): void;
 }

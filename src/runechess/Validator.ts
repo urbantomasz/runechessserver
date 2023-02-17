@@ -3,6 +3,7 @@ import { Princess, Unit } from "./Unit";
 import { rotateMatrix90 } from "./Helpers";
 import { Game } from "./Game";
 import { Color, MoveState, MoveType } from "./Enums";
+import { AvailableMovesDTO } from "./DTOs";
 
 export interface AvailableMoves{
     Tiles: Tile[]
@@ -82,7 +83,9 @@ export class Validator{
         let unitsAvailableMoves = new Map<Unit, AvailableMoves>();
 
         units.forEach(unit =>{
-            if(unit.isCaptured) return;
+            if(unit.isCaptured){
+              return;
+            }
             let movesAvailable = this.getUnitAvailableMoves(unit,  units.filter(u => !u.isCaptured), tiles);
             if(!omitCheck){
               this.FilterUnitMovesThatWouldResultInCheck(unit, movesAvailable);
