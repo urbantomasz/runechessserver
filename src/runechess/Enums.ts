@@ -22,5 +22,6 @@ export enum Spell {
     CreateWall
     }
 
+export enum CommandType{Move, Capture, Cast}
 export enum MoveType{NoMovement, MoveOrTake, OnlyTake, OnlyMove}
 export enum TargetColor{Red, Teal}

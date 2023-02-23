@@ -1,23 +1,64 @@
-import { Color } from "./Enums";
+import { CaptureCommand, MoveCommand, SpellCommand } from "./Commands";
+import { Color, CommandType } from "./Enums";
 import { Game } from "./Game";
+import { GameObject } from "./GameObject";
+import { SpellManager } from "./SpellManager";
+import { StateManager } from "./StateManager";
 import { King, Knight, Mage, Peasant, Priest, Princess, Rogue, Unit } from "./Unit";
 
 export class Bot {
   private _game: Game;
+  private _stateManager: StateManager;
+  private _spellManager: SpellManager;
   /**
  *
  */
-    constructor(game: Game) {
+    constructor(game: Game, stateManager: StateManager, spellManager: SpellManager) {
+        this._stateManager = stateManager;
+        this._spellManager = spellManager;
         this._game = game;
     }
 
+
+
     public GetBestMove(){
+      let movesValuedMap: Map<number, {unit: Unit, target: GameObject, command: CommandType}>
+
+      this._game.UnitsAvailableMoves.forEach((moves, unit) => {
+
+        moves.Tiles.forEach(tile =>{
+          let moveCommand = new MoveCommand(unit, tile, this._game.Units);
+          moveCommand.Execute();
+          let moveValue = this.valueState(this._game.Units, unit.color);
+          moveCommand.Undo();
+          movesValuedMap.set(moveValue, {unit: unit, target: tile, command: CommandType.Move});
+        })
+
+        moves.Units.forEach(enemyUnit =>{
+          let captureCommand = new CaptureCommand(unit, enemyUnit, this._game.Units, this._game.Tiles);
+          captureCommand.Execute();
+          let moveValue = this.valueState(this._game.Units, unit.color);
+          captureCommand.Undo();
+          movesValuedMap.set(moveValue, {unit: unit, target: enemyUnit, command: CommandType.Capture});
+        })
+
+        })
+
+      this._game.UnitsAvailableCasts.forEach((casts, unit) =>{
+        casts.Targets.forEach(target =>{
+          let spellCommand = new SpellCommand(unit, target, this._game.Spells, this._game.Tiles, this._spellManager);
+          spellCommand.Execute();
+          let moveValue = this.valueState(this._game.Units, unit.color);
+          spellCommand.Undo();
+          movesValuedMap.set(moveValue, {unit: unit, target: target, command: CommandType.Cast});
+        })
+      })
+      
+
 
     }
 
-
-
-    private ValueState(units: Unit[], color: Color){
+    private valueState(units: Unit[], color: Color): number{
       let stateValue: number = 0;
       units.forEach(unit => {
         if(unit.isCaptured) return;
@@ -48,6 +89,7 @@ export class Bot {
         }
         stateValue += unitValue * unit.color === color ? 1 : -1;
       });
+      return stateValue;
     }
     
     // public playMove(){
