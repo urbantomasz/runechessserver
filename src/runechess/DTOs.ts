@@ -1,3 +1,5 @@
+import { GameObject } from "./GameObject";
+
 export class TileDTO {
     id: string;
     row: number;
@@ -25,4 +27,3 @@ export class AvailableMovesDTO{
 export class AvailableCastsDTO{
     Targets: string[];
 }
-  

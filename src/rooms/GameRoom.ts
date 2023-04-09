@@ -1,6 +1,6 @@
 import { ArraySchema, MapSchema } from "@colyseus/schema";
 import { Room, Client, Delayed, Clock } from "colyseus";
-import { Color } from "../runechess/Enums";
+import { Color, CommandType } from "../runechess/Enums";
 import { Game } from "../runechess/Game";
 import { IGame } from "../runechess/Interfaces";
 import { PowerStomp } from "../runechess/Spell";
@@ -57,6 +57,24 @@ export class GameRoom extends Room<GameRoomState> {
     if(this.state.IsMate){
       this.broadcast("GameOver", {winnerColor: this.state.PlayerTurnColor === 0 ? 1 : 0});
     }
+
+    
+    if(this._isPlayground && this.state.PlayerTurnColor !== Color.Blue){
+      this.makeBotMove();
+    }
+  }
+
+  private async makeBotMove(){
+    const bestMove = this._game.GetBestMove(2);
+    if(bestMove.command === CommandType.Move){
+      this.tryMoveUnit({selectedUnit: bestMove.unit.id, tile: bestMove.target.id })
+    }
+    if(bestMove.command === CommandType.Capture){
+      this.tryCaptureUnit({selectedUnit: bestMove.unit.id, capturingUnit: bestMove.target.id})
+    }
+    if(bestMove.command === CommandType.Cast){
+      this.tryCastingSpell({castingUnit: bestMove.unit.id, targetingObject: bestMove.target.id})
+    }
   }
 
   private initializeState(){
@@ -107,25 +125,55 @@ export class GameRoom extends Room<GameRoomState> {
      // start the clock ticking
      this.clock.start();
     
-    this.onMessage("TryMoveUnit", (client, data) =>{
-      //if(!this._isPlayground && !(client.id === (this._game.GetPlayerTurnColor() === Color.Blue ? this._bluePlayerId : this._redPlayerId))) return;
-      if(this._game.TryMoveUnit(data.selectedUnit, data.tile)){
-        //console.log(this._game.GetPlayerTurnColor())
-       this.updateState();
-       this.broadcast("UnitMoved", {selectedUnit: data.selectedUnit, tile: data.tile});
-      }
+    
+    this.onMessage("TryMoveUnit", (client, data: TryMoveUnitData) =>{
+      this.tryMoveUnit(data);
     })
 
-    this.onMessage("TryCaptureUnit", (client, data) =>{
-      //if(!this._isPlayground && !(client.id === (this._game.GetPlayerTurnColor() === Color.Blue ? this._bluePlayerId : this._redPlayerId))) return;
-      if(this._game.TryCaptureUnit(data.selectedUnit, data.capturingUnit)){
-       this.updateState();
-       this.broadcast("UnitCaptured", {selectedUnit: data.selectedUnit, capturedUnit: data.capturingUnit});
-      };
+
+    this.onMessage("TryCaptureUnit", (client, data: TryCaptureUnitData) =>{
+      this.tryCaptureUnit(data);
     })
 
-    this.onMessage("TryCastingSpell", (client, data) =>{
-      //console.log("try casting spell game")
+
+    this.onMessage("TryCastingSpell", (client, data: TryCastingSpellData) =>{
+     this.tryCastingSpell(data);
+    }
+    )
+  }
+
+  onLeave (client: Client, consented: boolean) {
+    console.log(client.sessionId, "left!");
+    if(client.id === this._bluePlayerId)
+      this._bluePlayerId = null;
+    if(client.id === this._redPlayerId)
+      this._redPlayerId = null; 
+  }
+
+  onDispose() {
+    console.log("room", this.roomId, "disposing...");
+  }
+
+    
+  private tryMoveUnit(data: TryMoveUnitData){
+    //if(!this._isPlayground && !(client.id === (this._game.GetPlayerTurnColor() === Color.Blue ? this._bluePlayerId : this._redPlayerId))) return;
+    if(this._game.TryMoveUnit(data.selectedUnit, data.tile)){
+      //console.log(this._game.GetPlayerTurnColor())
+    this.updateState();
+    this.broadcast("UnitMoved", {selectedUnit: data.selectedUnit, tile: data.tile});
+  }
+  }
+  
+  private tryCaptureUnit(data: TryCaptureUnitData){
+        //if(!this._isPlayground && !(client.id === (this._game.GetPlayerTurnColor() === Color.Blue ? this._bluePlayerId : this._redPlayerId))) return;
+        if(this._game.TryCaptureUnit(data.selectedUnit, data.capturingUnit)){
+          this.updateState();
+          this.broadcast("UnitCaptured", {selectedUnit: data.selectedUnit, capturedUnit: data.capturingUnit});
+         };
+  }
+
+  private tryCastingSpell(data: TryCastingSpellData){
+     //console.log("try casting spell game")
       //if(!this._isPlayground && !(client.id === (this._game.GetPlayerTurnColor() === Color.Blue ? this._bluePlayerId : this._redPlayerId))) return;
       
       const castingUnit = this._game.GetGameObjectById(data.castingUnit) as Unit;
@@ -173,19 +221,6 @@ export class GameRoom extends Room<GameRoomState> {
         }
         }
       this.updateState();
-    })
-  }
-
-  onLeave (client: Client, consented: boolean) {
-    console.log(client.sessionId, "left!");
-    if(client.id === this._bluePlayerId)
-      this._bluePlayerId = null;
-    if(client.id === this._redPlayerId)
-      this._redPlayerId = null; 
-  }
-
-  onDispose() {
-    console.log("room", this.roomId, "disposing...");
   }
 
   private mapMovesToSchema(availableMoves: Map<Unit,AvailableMoves>): MapSchema<AvailableMovesSchema> {
@@ -208,3 +243,19 @@ export class GameRoom extends Room<GameRoomState> {
     return mapSchema;
   }
 }
+
+export interface TryMoveUnitData{
+  selectedUnit: string;
+  tile: string;
+}
+
+export interface TryCaptureUnitData{
+  selectedUnit: string;
+  capturingUnit: string;
+}
+
+export interface TryCastingSpellData{
+  castingUnit: string;
+  targetingObject: string;
+}
+

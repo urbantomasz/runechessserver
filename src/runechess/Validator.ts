@@ -166,9 +166,6 @@ export class Validator{
         } 
 
         units.forEach(u =>{
-          if(u.row === undefined){
-            console.log(u);
-          }
           unitsPlacement[u.row][u.column] = 1;
         })
 
@@ -197,7 +194,7 @@ export class Validator{
       
             while((iIter >= 0 && iIter < Game.BOARD_ROWS) && (jIter >= 0 && jIter < Game.BOARD_COLUMNS)){
               unitsPlacement[iIter][jIter] = unitsPlacement[iIter][jIter] + 1;
-              if(unitsPlacement[iIter][jIter] == 2) break;
+              if(unitsPlacement[iIter][jIter] == 1 || unitsPlacement[iIter][jIter] == 2) break;
               iIter = iIter + iDirection;
               jIter = jIter + jDirection;
             }       

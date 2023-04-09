@@ -121,6 +121,8 @@ export class SpellCommand implements ICommand{
         if(this._targetObject instanceof Unit && this._tiles[this._targetObject.row][this._targetObject.column].isDestroyed){
             this._targetObject.isCaptured = true;
         }
+
+        this._castingUnit.usedSpell = true;
     }
     Undo(): void {
         if(!this._tiles[this._castingUnit.row][this._castingUnit.column].isDestroyed){
@@ -132,5 +134,7 @@ export class SpellCommand implements ICommand{
         }
 
         this._unitSpell.Undo();
+
+        this._castingUnit.usedSpell = false;
     }
 }

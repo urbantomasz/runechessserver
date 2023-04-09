@@ -7,6 +7,7 @@ import { SpellManager } from "./SpellManager";
 import { Tile } from "./Tile";
 import { DarkKnight, King, Knight, Peasant, Princess, Unit } from "./Unit";
 import { Validator } from "./Validator";
+import { CaptureCommand, MoveCommand, SpellCommand } from "./Commands";
 
 export class StateManager {
      private _validator: Validator;
@@ -54,53 +55,29 @@ export class StateManager {
         }
     
     public TryCastingSpell(castingUnit: Unit, targetObject: GameObject): boolean {
-       // console.log("Try casting spell")
         if(!this._spellManager.UnitsAvailableCasts.get(castingUnit).Targets.includes(targetObject)) return false;
-        //if(this._playerTurnColor !== castingUnit.color) return false;
-        this._spellManager.CastSpell(castingUnit, targetObject);
-        if(this._tiles[castingUnit.row][castingUnit.column].isDestroyed){
-            castingUnit.isCaptured = true;
-        }
-        if(targetObject instanceof Unit && this._tiles[targetObject.row][targetObject.column].isDestroyed){
-            targetObject.isCaptured = true;
-        }
-       // castingUnit.usedSpell = true;
-       this._moves.push(new Move(castingUnit, targetObject, true))
+        if(this._playerTurnColor !== castingUnit.color) return false;
+        new SpellCommand(castingUnit, targetObject, this._spellManager.Spells, this._tiles, this._spellManager).Execute();
+        this._moves.push(new Move(castingUnit, targetObject, true))
         return this.OnTurnFinished()
     }
 
-    public MoveUnit(unit: Unit, tile: Tile){
-        if(unit instanceof Peasant && unit.color === Color.Blue && tile.row === Game.BOARD_ROWS-1 ||
-            unit instanceof Peasant && unit.color === Color.Red && tile.row === 0){
-            let unitIndex = this._units.findIndex(u => u === unit);
-            let king = new King(unit.color, new Tile(tile.row, tile.column))
-            king.id = unit.id;
-            this._units[unitIndex] = king;
-            return;
-        }
-        unit.column = tile.column;
-        unit.row = tile.row;
-        unit.isMoved = true;
-    }
 
     public TryMoveUnit(unit: Unit, tile: Tile): boolean{
         if(!this._validator.UnitsAvailableMoves.get(unit).Tiles.includes(tile)) return false;
-        //if(this._playerTurnColor !== unit.color) return false;
-        this.MoveUnit(unit, tile);
+        if(this._playerTurnColor !== unit.color) return false;
+        new MoveCommand(unit, tile, this._units).Execute();
         this._moves.push(new Move(unit, tile))
         return this.OnTurnFinished()
     }
 
     public TryTakeUnit(selectedUnit: Unit, capturingUnit: Unit): boolean{
         if(!this._validator.UnitsAvailableMoves.get(selectedUnit).Units.includes(capturingUnit)) return false;
-        //if(this._playerTurnColor !== selectedUnit.color) return false;
+        if(this._playerTurnColor !== selectedUnit.color) return false;
         if(capturingUnit instanceof Princess){
             return false;
         }
-        let capturingUnitTile = this._tiles[capturingUnit.row][capturingUnit.column];
-        capturingUnit.isCaptured = true;
-        capturingUnitTile.lastCapturedUnit = capturingUnit;
-        this.MoveUnit(selectedUnit, capturingUnitTile);
+        new CaptureCommand(selectedUnit, capturingUnit, this._units, this._tiles).Execute();
         this._moves.push(new Move(selectedUnit, capturingUnit, true))
         return this.OnTurnFinished();
     }

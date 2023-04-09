@@ -1,3 +1,4 @@
+import { BotMove } from "./Bot";
 import { Color } from "./Enums";
 import { GameObject } from "./GameObject";
 import { Move } from "./Move";
@@ -21,5 +22,5 @@ export interface IGame{
     TryMoveUnit: (selectedUnitId: string, tileId: string) => boolean;
     TryCaptureUnit: (selectedUnitId: string, capturingUnitId: string) => boolean;
     TryCastingSpell: (castingUnitId: string, targetUnitId: string) => boolean;
-    MakeBotMove(): void;
+    GetBestMove(depth: number): BotMove;
 }

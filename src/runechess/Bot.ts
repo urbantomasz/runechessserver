@@ -1,10 +1,13 @@
+import { boolean } from "@colyseus/schema/lib/encoding/decode";
 import { CaptureCommand, MoveCommand, SpellCommand } from "./Commands";
-import { Color, CommandType } from "./Enums";
+import { Color, CommandType, Spell } from "./Enums";
 import { Game } from "./Game";
 import { GameObject } from "./GameObject";
 import { SpellManager } from "./SpellManager";
 import { StateManager } from "./StateManager";
 import { King, Knight, Mage, Peasant, Priest, Princess, Rogue, Unit } from "./Unit";
+import { Move } from "./Move";
+import { Tile } from "./Tile";
 
 export class Bot {
   private _game: Game;
@@ -19,19 +22,68 @@ export class Bot {
         this._game = game;
     }
 
+    // public GetBestMove(): BotMove{
+    //   return this.getValuedBotMoves().pop();
+    // }
+
+    public GetBestMove(depth: number): BotMove {
+      return this.getValuedBotMoves(depth).pop();
+    }
+
+    private getValuedBotMoves(depth: number, maximizingPlayer: boolean = true, alpha: number = -Infinity, beta: number = Infinity): BotMove[] {
+      if (depth === 0) {
+        return this.evaluateCurrentState();
+      }
+  
+      let movesValuedArray: Array<BotMove> = this.evaluateCurrentState();
+      let bestMove: BotMove = null;
+  
+      for (const move of movesValuedArray) {
+        let command;
+        if(move.command === CommandType.Move){
+            command = new MoveCommand(move.unit, move.target as Tile, this._game.Units);
+          }
+          if(move.command === CommandType.Capture){
+            command = new CaptureCommand(move.unit, move.target as Unit, this._game.Units, this._game.Tiles);
+          }
+          if(move.command === CommandType.Cast){
+            command = new SpellCommand(move.unit, move.target, this._game.Spells, this._game.Tiles, this._spellManager);
+          }
+        command.Execute();
+        const moveValue = this.getValuedBotMoves(depth - 1, !maximizingPlayer, alpha, beta).pop().moveValue;
+        command.Undo();
+  
+        if (maximizingPlayer) {
+          if (moveValue > alpha) {
+            alpha = moveValue;
+            bestMove = move;
+          }
+        } else {
+          if (moveValue < beta) {
+            beta = moveValue;
+            bestMove = move;
+          }
+        }
+  
+        if (alpha >= beta) {
+          break;
+        }
+      }
+  
+      return [bestMove];
+    }
 
 
-    public GetBestMove(){
-      let movesValuedMap: Map<number, {unit: Unit, target: GameObject, command: CommandType}>
+    private evaluateCurrentState(): BotMove[]{
+      let movesValuedArray: Array<BotMove> = new Array<BotMove>();
 
       this._game.UnitsAvailableMoves.forEach((moves, unit) => {
-
         moves.Tiles.forEach(tile =>{
           let moveCommand = new MoveCommand(unit, tile, this._game.Units);
           moveCommand.Execute();
           let moveValue = this.valueState(this._game.Units, unit.color);
           moveCommand.Undo();
-          movesValuedMap.set(moveValue, {unit: unit, target: tile, command: CommandType.Move});
+          movesValuedArray.push({unit: unit, target: tile, command: CommandType.Move, moveValue: moveValue});
         })
 
         moves.Units.forEach(enemyUnit =>{
@@ -39,7 +91,7 @@ export class Bot {
           captureCommand.Execute();
           let moveValue = this.valueState(this._game.Units, unit.color);
           captureCommand.Undo();
-          movesValuedMap.set(moveValue, {unit: unit, target: enemyUnit, command: CommandType.Capture});
+          movesValuedArray.push({unit: unit, target: enemyUnit, command: CommandType.Capture, moveValue: moveValue});
         })
 
         })
@@ -50,12 +102,13 @@ export class Bot {
           spellCommand.Execute();
           let moveValue = this.valueState(this._game.Units, unit.color);
           spellCommand.Undo();
-          movesValuedMap.set(moveValue, {unit: unit, target: target, command: CommandType.Cast});
+          movesValuedArray.push({unit: unit, target: target, command: CommandType.Cast, moveValue: moveValue});
         })
       })
       
+      movesValuedArray.sort((a,b) => b.moveValue - a.moveValue);
 
-
+      return movesValuedArray;
     }
 
     private valueState(units: Unit[], color: Color): number{
@@ -87,11 +140,22 @@ export class Bot {
         if(!unit.usedSpell){
           unitValue++;
         }
-        stateValue += unitValue * unit.color === color ? 1 : -1;
+        stateValue += unitValue * (unit.color === color ? 1 : -1);
       });
       return stateValue;
     }
     
+
+}
+
+export interface BotMove{
+  unit: Unit;
+  target: GameObject;
+  command: CommandType, 
+  moveValue: number
+}
+
+
     // public playMove(){
     //     unitMovesAvailable.Tiles.forEach(tile => {
     //         unit.row = tile.row
@@ -129,4 +193,29 @@ export class Bot {
     //         unit.column = unitStartingColumn;
     //       });
     // }
-}
+
+
+        // public GetBestMoveRecursive(depth: number): number{
+
+    //   if(depth === 0){
+    //     let value = this.valueState(this._game.Units, this._game.GetPlayerTurnColor());
+    //     return value;
+    //   }
+
+    //   let valuedMoves = this.getValuedBotMoves();
+    //   valuedMoves.forEach(move =>{
+    //     let command;
+    //     if(move.command === CommandType.Move){
+    //       command = new MoveCommand(move.unit, move.target as Tile, this._game.Units);
+    //     }
+    //     if(move.command === CommandType.Capture){
+    //       command = new CaptureCommand(move.unit, move.target as Unit, this._game.Units, this._game.Tiles);
+    //     }
+    //     if(move.command === CommandType.Cast){
+    //       command = new SpellCommand(move.unit, move.target, this._game.Spells, this._game.Tiles, this._spellManager);
+    //     }
+    //     command.Execute();
+    //     this.GetBestMoveRecursive(depth - 1);
+    //     command.Undo();
+    //   })
+    // }

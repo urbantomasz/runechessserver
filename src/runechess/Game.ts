@@ -9,6 +9,7 @@ import { GameObject } from "./GameObject";
 import { IGame } from "./Interfaces";
 import { Move } from "./Move";
 import { ISpell } from "./Spell";
+import { Bot, BotMove } from "./Bot";
 //todo move some subclasses to game maybe as interfaces or abstract classes 
 export class Game implements IGame {
     public static BOARD_ROWS = 8;
@@ -17,6 +18,7 @@ export class Game implements IGame {
     private readonly _validator: Validator;
     private readonly _stateManager: StateManager;
     private readonly _spellManager: SpellManager;
+    private readonly _bot: Bot;
  
     constructor() {
         this._players = [new Player(Color.Blue), new Player(Color.Red)];
@@ -25,10 +27,8 @@ export class Game implements IGame {
         this._validator = new Validator(units, tiles);
         this._spellManager = new SpellManager(units, tiles, this._validator);
         this._stateManager = new StateManager(units, tiles, this._validator, this._spellManager);
-        
+        this._bot = new Bot(this, this._stateManager,  this._spellManager);
     };
-
-
 
     public IsCheck(): boolean {
         return this._validator.IsCheck || this._spellManager.IsSpellCheck;
@@ -40,8 +40,8 @@ export class Game implements IGame {
         //return true;
     }
 
-    public MakeBotMove(): void {
-        
+    public GetBestMove(depth: number): BotMove {
+        return this._bot.GetBestMove(depth);
     }
 
     public GetPlayerTurnColor(): Color{
@@ -101,11 +101,13 @@ export class Game implements IGame {
     }
 
     public get UnitsAvailableMoves(): Map<Unit, AvailableMoves>{
-        return this._validator.UnitsAvailableMoves;
+        return new Map([...this._validator.UnitsAvailableMoves]
+            .filter(([k,v])=>k.color === this._stateManager.PlayerTurnColor))
     }
 
     public get UnitsAvailableCasts(): Map<Unit, AvailableCasts>{
-        return this._spellManager.UnitsAvailableCasts;
+        return new Map([...this._spellManager.UnitsAvailableCasts]
+            .filter(([k,v])=>k.color === this._stateManager.PlayerTurnColor))
     }
 
     public GetGameObjectById(id: string): GameObject{
