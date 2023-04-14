@@ -1,71 +1,78 @@
-import { ArraySchema, MapSchema } from "@colyseus/schema";
-import { Room, Client, Delayed, Clock } from "colyseus";
+import { Room, Client } from "colyseus";
 import { Color, CommandType } from "../runechess/Enums";
 import { Game } from "../runechess/Game";
-import { IGame } from "../runechess/Interfaces";
+import { IGame } from "../runechess/IGame";
 import { PowerStomp } from "../runechess/Spell";
-import { AvailableCasts } from "../runechess/SpellManager";
 import { Tile } from "../runechess/Tile";
 import { Knight, Princess, Rogue, Unit } from "../runechess/Unit";
-import { AvailableMoves } from "../runechess/Validator";
 import { Position } from "../runechess/Position";
-import { AvailableCastsSchema, AvailableMovesSchema, GameRoomState, TileSchema, UnitSchema } from "./schema/GameRoomState";
+import { UnitDTO, TileDTO, AvailableMovesDTO, AvailableCastsDTO } from "../../../runechessshared/DTOs";
+import { AvailableMoves } from "../runechess/Validator";
+import { AvailableCasts } from "../runechess/SpellManager";
 
-export class GameRoom extends Room<GameRoomState> {
+export class GameRoom extends Room {
   private _game: IGame;
   private _bluePlayerId: string = null;
   private _redPlayerId: string = null;
   private _isPlayground: boolean = false;
   private _lastMoveTimeStamp: number;
   private _isFirstMove: boolean = true;
+  private _redPlayerRemainingTime = 10 * 60 * 1000;
+  private _bluePlayerRemainingTime = 10 * 60 * 1000;
   /**
    *
    */
   constructor() {
     super();
-    this.initializeState()
+    this._game = new Game();
   }
 
   private async updateState(){
-    console.time('updateState')
     let currentMoveTimeStamp = Date.now();
-
+    let playerTurnColor = this._game.GetPlayerTurnColor();
     if(this._isFirstMove){
       this._isFirstMove = false;
     } else{
-      if(this.state.PlayerTurnColor === Color.Blue){
-        this.state.BluePlayerRemainingTime = this.state.BluePlayerRemainingTime - (currentMoveTimeStamp - this._lastMoveTimeStamp);
+      if(playerTurnColor === Color.Blue){
+        this._bluePlayerRemainingTime = this._bluePlayerRemainingTime - (currentMoveTimeStamp - this._lastMoveTimeStamp);
       } 
   
-      if(this.state.PlayerTurnColor === Color.Red){
-        this.state.RedPlayerRemainingTime = this.state.RedPlayerRemainingTime - (currentMoveTimeStamp - this._lastMoveTimeStamp);
+      if(playerTurnColor === Color.Red){
+        this._redPlayerRemainingTime = this._redPlayerRemainingTime - (currentMoveTimeStamp - this._lastMoveTimeStamp);
       }
     }
 
     this._lastMoveTimeStamp = currentMoveTimeStamp;
 
-    this.state.Units = this._game.Units.map(x => new UnitSchema(x)) as ArraySchema<UnitSchema>;
-    this.state.Tiles = this._game.Tiles.flat().map(x => new TileSchema(x)) as ArraySchema<TileSchema>;
-    this.state.AvailableMoves = this.mapMovesToSchema(this._game.UnitsAvailableMoves);
-    this.state.AvailableCasts = this.mapCastsToSchema(this._game.UnitsAvailableCasts);
-    this.state.PlayerTurnColor = this._game.GetPlayerTurnColor();
-    this.state.Moves = this._game.Moves.map(x => x.toNotationString()) as ArraySchema<string>;
-    this.state.IsCheck = this._game.IsCheck();
-    this.state.IsMate = this._game.IsMate();
-    console.timeEnd('updateState')
-
-    if(this.state.IsMate){
-      this.broadcast("GameOver", {winnerColor: this.state.PlayerTurnColor === 0 ? 1 : 0});
+    if(this._game.IsMate()){
+      this.broadcast("GameOver", {winnerColor: playerTurnColor === 0 ? 1 : 0});
+    } else{
+      if(this._isPlayground && playerTurnColor !== Color.Blue){
+        this.makeBotMove();
+      }
+  
+      this.broadcast("StateChange", this.getGameStateData());
     }
 
-    
-    if(this._isPlayground && this.state.PlayerTurnColor !== Color.Blue){
-      this.makeBotMove();
-    }
+   
   }
 
-  private async makeBotMove(){
-    const bestMove = this._game.GetBestMove(2);
+  private getGameStateData(): any{
+    return {
+      Units: this._game.Units.map(x => new UnitDTO(x)), 
+      Tiles: this._game.Tiles.flat().map(x => x as unknown as TileDTO),
+      AvailableMoves: JSON.stringify(Array.from(mapMovesToDTO(this._game.UnitsAvailableMoves).entries())), 
+      AvailableCasts:  JSON.stringify(Array.from(mapCastsToDTO(this._game.UnitsAvailableCasts).entries())),
+      IsCheck: this._game.IsCheck(),
+      IsMate: this._game.IsMate(),
+      Moves: this._game.Moves.map(x => x.toNotationString()),
+      BluePlayerRemainingTime: this._bluePlayerRemainingTime,
+      RedPlayerRemainingTime: this._redPlayerRemainingTime
+    };
+  }
+
+  private makeBotMove(){
+    const bestMove = this._game.GetBestMove(0 );
     if(bestMove.command === CommandType.Move){
       this.tryMoveUnit({selectedUnit: bestMove.unit.id, tile: bestMove.target.id })
     }
@@ -75,16 +82,6 @@ export class GameRoom extends Room<GameRoomState> {
     if(bestMove.command === CommandType.Cast){
       this.tryCastingSpell({castingUnit: bestMove.unit.id, targetingObject: bestMove.target.id})
     }
-  }
-
-  private initializeState(){
-    this._game = new Game();
-    let units = this._game.Units.map(x => new UnitSchema(x)) as ArraySchema<UnitSchema>;
-    let tiles = this._game.Tiles.flat().map(x => new TileSchema(x)) as ArraySchema<TileSchema>;
-    let availableMoves = this.mapMovesToSchema(this._game.UnitsAvailableMoves);
-    let availableCasts = this.mapCastsToSchema(this._game.UnitsAvailableCasts);
-    let moves = this._game.Moves.map(x => x.toNotationString()) as ArraySchema<string>;
-    this.setState(new GameRoomState(units, tiles, availableMoves, availableCasts, moves))
   }
 
   onJoin(client: Client, options?: any, auth?: any): void | Promise<any> {
@@ -97,7 +94,9 @@ export class GameRoom extends Room<GameRoomState> {
     else if(this._redPlayerId === null){
       this._redPlayerId = client.id; 
     }
-     
+    
+    client.send("StateChange", this.getGameStateData());
+
     if(this.clients.length == 2 && this._bluePlayerId !== null && this._redPlayerId !== null){
       this.broadcast("GameStart");
     } else if(this._isPlayground){
@@ -114,7 +113,6 @@ export class GameRoom extends Room<GameRoomState> {
  
 
     if(options.hasOwnProperty("isPlayground")){
-      console.log("isplayground value: " + options.isPlayground)
       if(options.isPlayground){
         this.maxClients = 1;
         this.setPrivate();
@@ -168,7 +166,8 @@ export class GameRoom extends Room<GameRoomState> {
         //if(!this._isPlayground && !(client.id === (this._game.GetPlayerTurnColor() === Color.Blue ? this._bluePlayerId : this._redPlayerId))) return;
         if(this._game.TryCaptureUnit(data.selectedUnit, data.capturingUnit)){
           this.updateState();
-          this.broadcast("UnitCaptured", {selectedUnit: data.selectedUnit, capturedUnit: data.capturingUnit});
+          let selectedUnit = this._game.GetGameObjectById(data.selectedUnit)
+          this.broadcast("UnitCaptured", {selectedUnit: data.selectedUnit, selectedUnitPosition: {row: selectedUnit.row, column: selectedUnit.column}, capturedUnit: data.capturingUnit});
          };
   }
 
@@ -222,26 +221,6 @@ export class GameRoom extends Room<GameRoomState> {
         }
       this.updateState();
   }
-
-  private mapMovesToSchema(availableMoves: Map<Unit,AvailableMoves>): MapSchema<AvailableMovesSchema> {
-    const mapSchema = new MapSchema<AvailableMovesSchema>();
-  
-    for (const [key, value] of availableMoves) {
-      mapSchema.set(key.id, new AvailableMovesSchema(value));
-    }
-  
-    return mapSchema;
-  }
-
-  private mapCastsToSchema(availableCasts: Map<Unit,AvailableCasts>): MapSchema<AvailableCastsSchema> {
-    const mapSchema = new MapSchema<AvailableCastsSchema>();
-  
-    for (const [key, value] of availableCasts) {
-      mapSchema.set(key.id, new AvailableCastsSchema(value));
-    }
-  
-    return mapSchema;
-  }
 }
 
 export interface TryMoveUnitData{
@@ -259,3 +238,30 @@ export interface TryCastingSpellData{
   targetingObject: string;
 }
 
+function mapMovesToDTO(availableMovesMap: Map<Unit,AvailableMoves>): Map<string, AvailableMovesDTO> {
+  
+  const availableMovesDTO = new Map<string, AvailableMovesDTO>();
+
+  for (const [key, value] of availableMovesMap) {
+    let availableMoves = new AvailableMovesDTO();
+    availableMoves.Tiles = value.Tiles.map(x => x.id);
+    availableMoves.Units = value.Units.map(x => x.id);
+    availableMovesDTO.set(key.id, availableMoves);
+  }
+
+  return availableMovesDTO;
+}
+
+ function mapCastsToDTO(availableCastsMap: Map<Unit,AvailableCasts>): Map<string, AvailableCastsDTO> {
+
+  const availableCastsDTO = new Map<string, AvailableCastsDTO>();
+
+  for (const [key, value] of availableCastsMap) {
+    let availableCasts = new AvailableCastsDTO();
+    availableCasts.Targets = value.Targets.map(x => x.id);
+    availableCastsDTO.set(key.id, availableCasts);
+  }
+
+
+  return availableCastsDTO;
+}

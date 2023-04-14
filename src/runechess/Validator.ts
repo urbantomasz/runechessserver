@@ -2,8 +2,7 @@ import { Tile } from "./Tile";
 import { Princess, Unit } from "./Unit";
 import { rotateMatrix90 } from "./Helpers";
 import { Game } from "./Game";
-import { Color, MoveState, MoveType } from "./Enums";
-import { AvailableMovesDTO } from "./DTOs";
+import { Color, MoveType } from "./Enums";
 
 export interface AvailableMoves{
     Tiles: Tile[]
@@ -30,17 +29,27 @@ export class Validator{
       return this._isMate;
     }
 
+    public set IsMate(isMate: boolean){
+      this._isMate = isMate;
+    }
+
     public get IsCheck(): boolean{
       return this._isCheck;
+    }
+
+    public set IsCheck(isCheck: boolean){
+      this._isCheck = isCheck;
     }
    
     public get UnitsAvailableMoves(): Map<Unit, AvailableMoves>{
         return this._unitsAvailableMoves;
     }
 
-    public get UnitsAvailableCasts(): Map<Unit, AvailableMoves>{
-        return this._unitsAvailableMoves;
-    }
+    public set UnitsAvailableMoves(unitsAvailableMoves: Map<Unit, AvailableMoves>){
+      this._unitsAvailableMoves = unitsAvailableMoves;
+  }
+
+    
 
     public UpdateUnitsAvailableMoves(): void{
       console.time('updateUnitsAvailableMoves')

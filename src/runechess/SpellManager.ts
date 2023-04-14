@@ -15,7 +15,6 @@ export interface AvailableCasts{
 export class SpellManager{
     private readonly _units: Unit[];
     private readonly _tiles: Tile[][];
-    private readonly _stateManager: StateManager;
     private readonly _validator: Validator;
     private _spells: Map<Unit, ISpell>;
     private _isSpellCheck: boolean;
@@ -25,6 +24,10 @@ export class SpellManager{
         return this._unitsAvailableCasts;
     }
 
+    public set UnitsAvailableCasts(unitsAvailableCasts: Map<Unit, AvailableCasts>){
+         this._unitsAvailableCasts = unitsAvailableCasts;
+    }
+
     public get Spells(): Map<Unit, ISpell>{
         return this._spells;
     }
@@ -32,9 +35,17 @@ export class SpellManager{
     public get IsSpellMate(): boolean{
         return this._isSpellMate;
       }
+
+      public set IsSpellMate(isSpellMate: boolean){
+        this._isSpellMate = isSpellMate;
+      }
   
       public get IsSpellCheck(): boolean{
         return this._isSpellCheck;
+      }
+
+      public set IsSpellCheck(isSpellCheck: boolean){
+        this._isSpellCheck = isSpellCheck;
       }
      
 
@@ -425,7 +436,7 @@ export class SpellManager{
         castingUnit.column = adjacentTile.column;
         castingUnit.row = adjacentTile.row;
 
-        if(targetingUnit.color != castingUnit.color){
+        if(targetingUnit.color !== castingUnit.color && !(targetingUnit instanceof Princess)){
             targetingUnit.isCaptured = true;
             adjacentTile.lastCapturedUnit = targetingUnit;
         }

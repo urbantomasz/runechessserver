@@ -6,7 +6,7 @@ import { StateManager } from "./StateManager";
 import { AvailableCasts, SpellManager } from "./SpellManager";
 import { Color } from "./Enums";
 import { GameObject } from "./GameObject";
-import { IGame } from "./Interfaces";
+import { IGame } from "./IGame";
 import { Move } from "./Move";
 import { ISpell } from "./Spell";
 import { Bot, BotMove } from "./Bot";
@@ -27,17 +27,15 @@ export class Game implements IGame {
         this._validator = new Validator(units, tiles);
         this._spellManager = new SpellManager(units, tiles, this._validator);
         this._stateManager = new StateManager(units, tiles, this._validator, this._spellManager);
-        this._bot = new Bot(this, this._stateManager,  this._spellManager);
+        this._bot = new Bot(this, this._stateManager,  this._spellManager, this._validator);
     };
 
     public IsCheck(): boolean {
         return this._validator.IsCheck || this._spellManager.IsSpellCheck;
-        //return true;
     }
 
     public IsMate(): boolean {
         return this._validator.IsMate && this._spellManager.IsSpellMate;
-        //return true;
     }
 
     public GetBestMove(depth: number): BotMove {
@@ -121,6 +119,4 @@ export class Game implements IGame {
             
         return null;
     }
-
-   
 }

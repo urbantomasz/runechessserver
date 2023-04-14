@@ -7,7 +7,7 @@ import { SpellManager } from "./SpellManager";
 import { Tile } from "./Tile";
 import { DarkKnight, King, Knight, Peasant, Princess, Unit } from "./Unit";
 import { Validator } from "./Validator";
-import { CaptureCommand, MoveCommand, SpellCommand } from "./Commands";
+import { CaptureCommand, MoveCommand, SpellCommand, TurnFinishedCommand } from "./Commands";
 
 export class StateManager {
      private _validator: Validator;
@@ -35,6 +35,10 @@ export class StateManager {
         return this._playerTurnColor;
     }
 
+    public set PlayerTurnColor(color: Color){
+        this._playerTurnColor = color;
+    }
+
     public get Moves(){
         return this._moves;
     }
@@ -57,7 +61,7 @@ export class StateManager {
     public TryCastingSpell(castingUnit: Unit, targetObject: GameObject): boolean {
         if(!this._spellManager.UnitsAvailableCasts.get(castingUnit).Targets.includes(targetObject)) return false;
         if(this._playerTurnColor !== castingUnit.color) return false;
-        new SpellCommand(castingUnit, targetObject, this._spellManager.Spells, this._tiles, this._spellManager).Execute();
+        new SpellCommand(castingUnit, targetObject, this._spellManager.Spells, this._spellManager).Execute();
         this._moves.push(new Move(castingUnit, targetObject, true))
         return this.OnTurnFinished()
     }
@@ -82,10 +86,12 @@ export class StateManager {
         return this.OnTurnFinished();
     }
 
-    public OnTurnFinished(): boolean{
+    public UpdatePlayerTurnColor(){
         this._playerTurnColor = (this._playerTurnColor === Color.Blue ? Color.Red : Color.Blue);
-        this._validator.UpdateUnitsAvailableMoves();
-        this._spellManager.UpdateUnitsAvailableCasts();
+    }
+
+    public OnTurnFinished(): boolean{
+        new TurnFinishedCommand(this, this._spellManager, this._validator).Execute();
         return true
     }
 }

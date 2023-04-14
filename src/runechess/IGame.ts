@@ -19,8 +19,8 @@ export interface IGame{
     IsCheck(): boolean;
     GetPlayerTurnColor: () => Color;
     GetGameObjectById: (objectId: string) => GameObject;
+    GetBestMove(depth: number): BotMove;
     TryMoveUnit: (selectedUnitId: string, tileId: string) => boolean;
     TryCaptureUnit: (selectedUnitId: string, capturingUnitId: string) => boolean;
     TryCastingSpell: (castingUnitId: string, targetUnitId: string) => boolean;
-    GetBestMove(depth: number): BotMove;
 }

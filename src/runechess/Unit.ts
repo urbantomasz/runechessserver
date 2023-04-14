@@ -6,8 +6,6 @@ import { Tile } from "./Tile";
 export abstract class Unit extends GameObject{
     color: Color;
     name: string;
-    row: number;
-    column: number;
     protected  _movePattern: number[][];
     public get movePattern(): number[][] {
         return this._movePattern;
@@ -49,7 +47,7 @@ export class Princess extends Unit {
 }
 
 export class Peasant extends Unit {
-
+    
 
     constructor(unitColor: Color, startAt: Tile) {
         let movePattern  = [

@@ -2,20 +2,65 @@ import { Color, Spell } from "./Enums";
 import { Game } from "./Game";
 import { GameObject } from "./GameObject";
 import { ISpell } from "./Spell";
-import { SpellManager } from "./SpellManager";
+import { AvailableCasts, SpellManager } from "./SpellManager";
+import { StateManager } from "./StateManager";
 import { Tile } from "./Tile";
 import { King, Peasant, Unit } from "./Unit";
+import { AvailableMoves, Validator } from "./Validator";
 
 interface ICommand {
     Execute(): void;
     Undo(): void;
 }
 
+export class TurnFinishedCommand implements ICommand{
+    private _stateManager: StateManager;
+    private _spellManager: SpellManager;
+    private _validator: Validator;
+    private _previousUnitsAvailableMoves: Map<Unit, AvailableMoves>;
+    private _previousUnitsAvailableCasts: Map<Unit, AvailableCasts>;
+    private _previousPlayercolor: Color;
+    private _previousIsCheck: boolean;
+    private _previousIsMate: boolean;
+    private _previousIsSpellCheck: boolean;
+    private _previousIsSpellMate: boolean;
+
+    constructor(stateManager: StateManager, spellManager: SpellManager, validator: Validator) {
+        this._stateManager = stateManager;
+        this._spellManager = spellManager;
+        this._validator = validator;
+        this._previousUnitsAvailableCasts = this._spellManager.UnitsAvailableCasts;
+        this._previousUnitsAvailableMoves = this._validator.UnitsAvailableMoves;
+        this._previousPlayercolor = stateManager.PlayerTurnColor;
+        this._previousIsCheck = validator.IsCheck;
+        this._previousIsMate = validator.IsMate;
+        this._previousIsSpellCheck = spellManager.IsSpellCheck;
+        this._previousIsSpellMate = spellManager.IsSpellMate;
+    }
+    Execute(): void {
+        this._stateManager.UpdatePlayerTurnColor();
+        this._validator.UpdateUnitsAvailableMoves();
+        this._spellManager.UpdateUnitsAvailableCasts();
+    }
+    Undo(): void {
+        this._stateManager.PlayerTurnColor = this._previousPlayercolor;
+        this._validator.UnitsAvailableMoves = this._previousUnitsAvailableMoves;
+        this._validator.IsCheck = this._previousIsCheck;
+        this._validator.IsMate = this._previousIsMate;
+        this._spellManager.UnitsAvailableCasts = this._previousUnitsAvailableCasts;
+        this._spellManager.IsSpellCheck = this._previousIsSpellCheck;
+        this._spellManager.IsSpellMate = this._previousIsSpellMate;
+    }
+
+    
+}
+
 class PromotePeasantCommand implements ICommand{
     private _units: Unit[];
-    private _isPeasantPromoted: any;
+    private _isPeasantPromoted: boolean;
     private _unit: Unit;
     private _tile: Tile;
+    private _unitIndex: number;
 
     constructor(unit: Unit, tile: Tile, units: Unit[]) {
         this._unit = unit;
@@ -27,17 +72,16 @@ class PromotePeasantCommand implements ICommand{
     Execute(): void {
         if(this._unit instanceof Peasant && this._unit.color === Color.Blue && this._tile.row === Game.BOARD_ROWS-1 ||
         this._unit instanceof Peasant && this._unit.color === Color.Red && this._tile.row === 0){
-                let unitIndex = this._units.findIndex(u => u === this._unit);
+                this._unitIndex = this._units.findIndex(u => u === this._unit);
                 let king = new King(this._unit.color, new Tile(this._tile.row, this._tile.column))
                 king.id = this._unit.id;
-                this._units[unitIndex] = king;
+                this._units[this._unitIndex] = king;
                 this._isPeasantPromoted = true;
         }
     }
     Undo(): void {
         if(this._isPeasantPromoted){
-            let kingIndex = this._units.findIndex(u => u === this._unit);
-            this._units[kingIndex] = this._unit;
+            this._units[this._unitIndex] = this._unit;
         }
     }
 }
@@ -74,25 +118,25 @@ export class MoveCommand implements ICommand{
 }
 
 export class CaptureCommand implements ICommand{
-    private _moveCommnad: MoveCommand;
+    private _moveCommand: MoveCommand;
     private _capturingUnit: Unit;
     private _capturingUnitTile: Tile;
     private _capturingUnitTileLCU: Unit;
     constructor(unit: Unit, capturingUnit: Unit, units: Unit[], tiles: Tile[][]) {
         this._capturingUnit = capturingUnit;
         this._capturingUnitTile = tiles[this._capturingUnit.row][this._capturingUnit.column];
-        this._moveCommnad = new MoveCommand(unit, this._capturingUnitTile, units);
+        this._moveCommand = new MoveCommand(unit, this._capturingUnitTile, units);
         this._capturingUnitTileLCU = this._capturingUnitTile.lastCapturedUnit;
     }
     Execute(): void {
         this._capturingUnit.isCaptured = true;
         this._capturingUnitTile.lastCapturedUnit = this._capturingUnit;
-        this._moveCommnad.Execute();
+        this._moveCommand.Execute();
     }
     Undo(): void {
         this._capturingUnit.isCaptured = false;
         this._capturingUnitTile.lastCapturedUnit = this._capturingUnitTileLCU;
-        this._moveCommnad.Undo();
+        this._moveCommand.Undo();
     }
 }
 
@@ -100,41 +144,21 @@ export class SpellCommand implements ICommand{
     private _unitSpell: ISpell;
     private _targetObject: GameObject;
     private _castingUnit: Unit;
-    private _tiles: Tile[][];
     private _spellManager: SpellManager;
 
-    constructor(castingUnit: Unit, targetObject: GameObject, spells: Map<Unit, ISpell>, tiles: Tile[][], spellManager: SpellManager) {
+    constructor(castingUnit: Unit, targetObject: GameObject, spells: Map<Unit, ISpell>, spellManager: SpellManager) {
         this._castingUnit = castingUnit;
         this._targetObject = targetObject;
-        this._tiles = tiles;
         this._unitSpell = spells.get(castingUnit)
         this._spellManager = spellManager;
     }
     
     Execute(): void {
         this._unitSpell.Cast(this._castingUnit, this._targetObject, this._spellManager);
-        
-        if(this._tiles[this._castingUnit.row][this._castingUnit.column].isDestroyed){
-            this._castingUnit.isCaptured = true;
-        }
-
-        if(this._targetObject instanceof Unit && this._tiles[this._targetObject.row][this._targetObject.column].isDestroyed){
-            this._targetObject.isCaptured = true;
-        }
-
         this._castingUnit.usedSpell = true;
     }
     Undo(): void {
-        if(!this._tiles[this._castingUnit.row][this._castingUnit.column].isDestroyed){
-            this._castingUnit.isCaptured = false;
-        }
-
-        if(this._targetObject instanceof Unit && !this._tiles[this._targetObject.row][this._targetObject.column].isDestroyed){
-            this._targetObject.isCaptured = false;
-        }
-
         this._unitSpell.Undo();
-
         this._castingUnit.usedSpell = false;
     }
 }
