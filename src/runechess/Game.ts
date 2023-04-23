@@ -2,7 +2,7 @@ import { Player } from "./Player";
 import { Tile } from "./Tile";
 import { Unit } from "./Unit";
 import { AvailableMoves, Validator } from "./Validator";
-import { StateManager } from "./StateManager";
+import { MoveUnitResult, StateManager } from "./StateManager";
 import { AvailableCasts, SpellManager } from "./SpellManager";
 import { Color } from "./Enums";
 import { GameObject } from "./GameObject";
@@ -10,6 +10,7 @@ import { IGame } from "./IGame";
 import { Move } from "./Move";
 import { ISpell } from "./Spell";
 import { Bot, BotMove } from "./Bot";
+import { CaptureCommand, ICommand, MoveCommand, SpellCommand } from "./Commands";
 //todo move some subclasses to game maybe as interfaces or abstract classes 
 export class Game implements IGame {
     public static BOARD_ROWS = 8;
@@ -27,8 +28,35 @@ export class Game implements IGame {
         this._validator = new Validator(units, tiles);
         this._spellManager = new SpellManager(units, tiles, this._validator);
         this._stateManager = new StateManager(units, tiles, this._validator, this._spellManager);
-        this._bot = new Bot(this, this._stateManager,  this._spellManager, this._validator);
-    };
+        this._bot = new Bot(units, tiles, this._stateManager,  this._spellManager, this._validator);
+    }
+    
+    public GetAllPossibleCommands(): ICommand[] {
+
+        let commandsArray: Array<ICommand> = new Array<ICommand>();
+
+        this.UnitsAvailableMoves.forEach((moves, unit) => {
+          moves.Tiles.forEach(tile =>{
+            let moveCommand = new MoveCommand(unit, tile, this.Units);
+            commandsArray.push(moveCommand)
+          })
+  
+          moves.Units.forEach(enemyUnit =>{
+            let captureCommand = new CaptureCommand(unit, enemyUnit, this.Units, this.Tiles);
+            commandsArray.push(captureCommand)
+            })
+          })
+  
+        this.UnitsAvailableCasts.forEach((casts, unit) =>{
+          casts.Targets.forEach(target =>{
+            let spellCommand = new SpellCommand(unit, target, this._spellManager);
+            commandsArray.push(spellCommand)
+          })
+        })
+
+        return commandsArray;
+    }
+
 
     public IsCheck(): boolean {
         return this._validator.IsCheck || this._spellManager.IsSpellCheck;
@@ -46,7 +74,7 @@ export class Game implements IGame {
         return this._stateManager.PlayerTurnColor;
     }
 
-    public TryMoveUnit(selectedUnitId: string, tileId: string): boolean{
+    public TryMoveUnit(selectedUnitId: string, tileId: string): MoveUnitResult{
         return this._stateManager.TryMoveUnit(
             this.GetGameObjectById(selectedUnitId) as Unit,
             this.GetGameObjectById(tileId) as Tile

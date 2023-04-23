@@ -9,18 +9,20 @@ import { Tile } from "./Tile";
 import { Validator } from "./Validator";
 
 export class Bot {
-  private _game: Game;
   private _stateManager: StateManager;
   private _spellManager: SpellManager;
   private _validator: Validator;
+  private _units: Unit[];
+  private _tiles: Tile[][];
   /**
  *
  */
-    constructor(game: Game, stateManager: StateManager, spellManager: SpellManager, validator: Validator) {
+    constructor(units: Unit[], tiles: Tile[][], stateManager: StateManager, spellManager: SpellManager, validator: Validator) {
         this._stateManager = stateManager;
         this._spellManager = spellManager;
         this._validator = validator;
-        this._game = game;
+        this._units = units;
+        this._tiles = tiles;
     }
 
     public GetBestMove(depth: number): BotMove {
@@ -46,13 +48,13 @@ export class Bot {
         let actionCommand;
         let turnFinishedCommand = new TurnFinishedCommand(this._stateManager, this._spellManager, this._validator)
         if(move.command === CommandType.Move){
-          actionCommand = new MoveCommand(move.unit, move.target as Tile, this._game.Units);
+          actionCommand = new MoveCommand(move.unit, move.target as Tile, this._units);
         }
         else if(move.command === CommandType.Capture){
-            actionCommand = new CaptureCommand(move.unit, move.target as Unit, this._game.Units, this._game.Tiles);
+            actionCommand = new CaptureCommand(move.unit, move.target as Unit, this._units, this._tiles);
         }
         else if(move.command === CommandType.Cast){
-            actionCommand = new SpellCommand(move.unit, move.target, this._game.Spells, this._spellManager);
+            actionCommand = new SpellCommand(move.unit, move.target, this._spellManager);
         }
         actionCommand.Execute();
         turnFinishedCommand.Execute();
@@ -90,30 +92,30 @@ export class Bot {
     private evaluateCurrentState(): BotMove[]{
       let movesValuedArray: Array<BotMove> = new Array<BotMove>();
 
-      this._game.UnitsAvailableMoves.forEach((moves, unit) => {
+      this._validator.UnitsAvailableMoves.forEach((moves, unit) => {
         moves.Tiles.forEach(tile =>{
-          let moveCommand = new MoveCommand(unit, tile, this._game.Units);
+          let moveCommand = new MoveCommand(unit, tile, this._units);
           moveCommand.Execute();
-          let moveValue = this.valueState(this._game, unit.color);
+          let moveValue = this.valueState(this._units, unit.color);
           moveCommand.Undo();
           movesValuedArray.push({unit: unit, target: tile, command: CommandType.Move, moveValue: moveValue});
         })
 
         moves.Units.forEach(enemyUnit =>{
-          let captureCommand = new CaptureCommand(unit, enemyUnit, this._game.Units, this._game.Tiles);
+          let captureCommand = new CaptureCommand(unit, enemyUnit, this._units, this._tiles);
           captureCommand.Execute();
-          let moveValue = this.valueState(this._game, unit.color);
+          let moveValue = this.valueState(this._units, unit.color);
           captureCommand.Undo();
           movesValuedArray.push({unit: unit, target: enemyUnit, command: CommandType.Capture, moveValue: moveValue});
         })
 
         })
 
-      this._game.UnitsAvailableCasts.forEach((casts, unit) =>{
+      this._spellManager.UnitsAvailableCasts.forEach((casts, unit) =>{
         casts.Targets.forEach(target =>{
-          let spellCommand = new SpellCommand(unit, target, this._game.Spells, this._spellManager);
+          let spellCommand = new SpellCommand(unit, target, this._spellManager);
           spellCommand.Execute();
-          let moveValue = this.valueState(this._game, unit.color);
+          let moveValue = this.valueState(this._units, unit.color);
           spellCommand.Undo();
           movesValuedArray.push({unit: unit, target: target, command: CommandType.Cast, moveValue: moveValue});
         })
@@ -122,9 +124,9 @@ export class Bot {
       return movesValuedArray;
     }
 
-    private valueState(game: Game, color: Color): number{
+    private valueState(units: Unit[], color: Color): number{
       let stateValue: number = 0;
-      game.Units.forEach(unit => {
+      units.forEach(unit => {
         if(unit.isCaptured) return;
         let unitValue: number;
         if(unit instanceof Peasant){
@@ -151,7 +153,7 @@ export class Bot {
         if(!unit.usedSpell){
           unitValue++;
         }
-        if(game.IsMate()){
+        if(this._validator.IsMate){
           stateValue += 1000;
         }
         stateValue += unitValue * (unit.color === color ? 1 : -1);

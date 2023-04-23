@@ -34,21 +34,20 @@ export class SpellManager{
 
     public get IsSpellMate(): boolean{
         return this._isSpellMate;
-      }
+    }
 
-      public set IsSpellMate(isSpellMate: boolean){
-        this._isSpellMate = isSpellMate;
-      }
-  
-      public get IsSpellCheck(): boolean{
-        return this._isSpellCheck;
-      }
+    public set IsSpellMate(isSpellMate: boolean){
+    this._isSpellMate = isSpellMate;
+    }
 
-      public set IsSpellCheck(isSpellCheck: boolean){
-        this._isSpellCheck = isSpellCheck;
-      }
-     
+    public get IsSpellCheck(): boolean{
+    return this._isSpellCheck;
+    }
 
+    public set IsSpellCheck(isSpellCheck: boolean){
+    this._isSpellCheck = isSpellCheck;
+    }
+    
     constructor(units: Unit[], tiles: Tile[][], validator: Validator) {
         this._units = units;
         this._tiles = tiles;

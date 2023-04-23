@@ -1,4 +1,4 @@
-import { Color, Spell } from "./Enums";
+import { Color, CommandType, Spell } from "./Enums";
 import { Game } from "./Game";
 import { GameObject } from "./GameObject";
 import { ISpell } from "./Spell";
@@ -8,7 +8,8 @@ import { Tile } from "./Tile";
 import { King, Peasant, Unit } from "./Unit";
 import { AvailableMoves, Validator } from "./Validator";
 
-interface ICommand {
+
+export interface ICommand {
     Execute(): void;
     Undo(): void;
 }
@@ -38,7 +39,7 @@ export class TurnFinishedCommand implements ICommand{
         this._previousIsSpellMate = spellManager.IsSpellMate;
     }
     Execute(): void {
-        this._stateManager.UpdatePlayerTurnColor();
+        this._stateManager.SwapPlayerTurnColor();
         this._validator.UpdateUnitsAvailableMoves();
         this._spellManager.UpdateUnitsAvailableCasts();
     }
@@ -57,7 +58,6 @@ export class TurnFinishedCommand implements ICommand{
 
 class PromotePeasantCommand implements ICommand{
     private _units: Unit[];
-    private _isPeasantPromoted: boolean;
     private _unit: Unit;
     private _tile: Tile;
     private _unitIndex: number;
@@ -66,23 +66,17 @@ class PromotePeasantCommand implements ICommand{
         this._unit = unit;
         this._tile = tile;
         this._units = units;
-        this._isPeasantPromoted = false;
     }
 
     Execute(): void {
-        if(this._unit instanceof Peasant && this._unit.color === Color.Blue && this._tile.row === Game.BOARD_ROWS-1 ||
-        this._unit instanceof Peasant && this._unit.color === Color.Red && this._tile.row === 0){
-                this._unitIndex = this._units.findIndex(u => u === this._unit);
-                let king = new King(this._unit.color, new Tile(this._tile.row, this._tile.column))
-                king.id = this._unit.id;
-                this._units[this._unitIndex] = king;
-                this._isPeasantPromoted = true;
-        }
+        this._unitIndex = this._units.findIndex(u => u === this._unit);
+        let king = new King(this._unit.color, new Tile(this._tile.row, this._tile.column))
+        king.id = this._unit.id;
+        this._units[this._unitIndex] = king;
     }
+
     Undo(): void {
-        if(this._isPeasantPromoted){
-            this._units[this._unitIndex] = this._unit;
-        }
+        this._units[this._unitIndex] = this._unit;
     }
 }
 
@@ -94,27 +88,36 @@ export class MoveCommand implements ICommand{
     private _tile: Tile;
     private _promotePeasantCommand: PromotePeasantCommand
 
+    public get IsPeasantPromoted(): boolean{
+        return this._promotePeasantCommand !== null;
+    }
+
     constructor(unit: Unit, tile: Tile, units: Unit[]) {
         this._unit = unit;
         this._tile = tile;
         this._unitIsMoved = unit.isMoved;
         this._unitStartRow = unit.row;
         this._unitStartColumn = unit.column;
-        this._promotePeasantCommand = new PromotePeasantCommand(unit, tile, units);
+        if(this._unit instanceof Peasant && this._unit.color === Color.Blue && this._tile.row === Game.BOARD_ROWS-1 ||
+            this._unit instanceof Peasant && this._unit.color === Color.Red && this._tile.row === 0){
+                this._promotePeasantCommand = new PromotePeasantCommand(unit, tile, units);
+        } else{
+            this._promotePeasantCommand = null;
+        }
     }
+    
     Execute(): void {
         this._unit.column = this._tile.column;
         this._unit.row = this._tile.row;
         this._unit.isMoved = true;
-        this._promotePeasantCommand.Execute();
+        this._promotePeasantCommand?.Execute();
     }
     Undo(): void {
         this._unit.column = this._unitStartColumn;
         this._unit.row = this._unitStartRow;
         this._unit.isMoved = this._unitIsMoved;
-        this._promotePeasantCommand.Undo();
+        this._promotePeasantCommand?.Undo();
     }
-    
 }
 
 export class CaptureCommand implements ICommand{
@@ -125,8 +128,8 @@ export class CaptureCommand implements ICommand{
     constructor(unit: Unit, capturingUnit: Unit, units: Unit[], tiles: Tile[][]) {
         this._capturingUnit = capturingUnit;
         this._capturingUnitTile = tiles[this._capturingUnit.row][this._capturingUnit.column];
-        this._moveCommand = new MoveCommand(unit, this._capturingUnitTile, units);
         this._capturingUnitTileLCU = this._capturingUnitTile.lastCapturedUnit;
+        this._moveCommand = new MoveCommand(unit, this._capturingUnitTile, units);
     }
     Execute(): void {
         this._capturingUnit.isCaptured = true;
@@ -146,10 +149,10 @@ export class SpellCommand implements ICommand{
     private _castingUnit: Unit;
     private _spellManager: SpellManager;
 
-    constructor(castingUnit: Unit, targetObject: GameObject, spells: Map<Unit, ISpell>, spellManager: SpellManager) {
+    constructor(castingUnit: Unit, targetObject: GameObject, spellManager: SpellManager) {
         this._castingUnit = castingUnit;
         this._targetObject = targetObject;
-        this._unitSpell = spells.get(castingUnit)
+        this._unitSpell = spellManager.Spells.get(castingUnit)
         this._spellManager = spellManager;
     }
     

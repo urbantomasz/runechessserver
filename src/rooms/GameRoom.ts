@@ -60,7 +60,7 @@ export class GameRoom extends Room {
   private getGameStateData(): any{
     return {
       Units: this._game.Units.map(x => new UnitDTO(x)), 
-      Tiles: this._game.Tiles.flat().map(x => x as unknown as TileDTO),
+      Tiles: this._game.Tiles.flat().map(x => new TileDTO(x)),
       AvailableMoves: JSON.stringify(Array.from(mapMovesToDTO(this._game.UnitsAvailableMoves).entries())), 
       AvailableCasts:  JSON.stringify(Array.from(mapCastsToDTO(this._game.UnitsAvailableCasts).entries())),
       IsCheck: this._game.IsCheck(),
@@ -72,7 +72,7 @@ export class GameRoom extends Room {
   }
 
   private makeBotMove(){
-    const bestMove = this._game.GetBestMove(0 );
+    const bestMove = this._game.GetBestMove(0);
     if(bestMove.command === CommandType.Move){
       this.tryMoveUnit({selectedUnit: bestMove.unit.id, tile: bestMove.target.id })
     }
@@ -155,11 +155,11 @@ export class GameRoom extends Room {
     
   private tryMoveUnit(data: TryMoveUnitData){
     //if(!this._isPlayground && !(client.id === (this._game.GetPlayerTurnColor() === Color.Blue ? this._bluePlayerId : this._redPlayerId))) return;
-    if(this._game.TryMoveUnit(data.selectedUnit, data.tile)){
-      //console.log(this._game.GetPlayerTurnColor())
-    this.updateState();
-    this.broadcast("UnitMoved", {selectedUnit: data.selectedUnit, tile: data.tile});
-  }
+    var moveUnitResult = this._game.TryMoveUnit(data.selectedUnit, data.tile);
+    if(moveUnitResult !== null){
+      this.updateState();
+      this.broadcast("UnitMoved", moveUnitResult);
+    }
   }
   
   private tryCaptureUnit(data: TryCaptureUnitData){

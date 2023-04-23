@@ -61,37 +61,42 @@ export class StateManager {
     public TryCastingSpell(castingUnit: Unit, targetObject: GameObject): boolean {
         if(!this._spellManager.UnitsAvailableCasts.get(castingUnit).Targets.includes(targetObject)) return false;
         if(this._playerTurnColor !== castingUnit.color) return false;
-        new SpellCommand(castingUnit, targetObject, this._spellManager.Spells, this._spellManager).Execute();
+
+        new SpellCommand(castingUnit, targetObject, this._spellManager).Execute();
         this._moves.push(new Move(castingUnit, targetObject, true))
-        return this.OnTurnFinished()
+        new TurnFinishedCommand(this, this._spellManager, this._validator).Execute(); 
+        return true;
     }
 
 
-    public TryMoveUnit(unit: Unit, tile: Tile): boolean{
-        if(!this._validator.UnitsAvailableMoves.get(unit).Tiles.includes(tile)) return false;
-        if(this._playerTurnColor !== unit.color) return false;
-        new MoveCommand(unit, tile, this._units).Execute();
+    public TryMoveUnit(unit: Unit, tile: Tile): MoveUnitResult{
+        if(!this._validator.UnitsAvailableMoves.get(unit).Tiles.includes(tile)) return;
+        if(this._playerTurnColor !== unit.color) return;
+
+        let moveCommand = new MoveCommand(unit, tile, this._units); moveCommand.Execute();
         this._moves.push(new Move(unit, tile))
-        return this.OnTurnFinished()
+        new TurnFinishedCommand(this, this._spellManager, this._validator).Execute(); 
+        return {selectedUnit: unit.id, tile: tile.id, isPeasantPromoted: moveCommand.IsPeasantPromoted};
     }
 
     public TryTakeUnit(selectedUnit: Unit, capturingUnit: Unit): boolean{
         if(!this._validator.UnitsAvailableMoves.get(selectedUnit).Units.includes(capturingUnit)) return false;
         if(this._playerTurnColor !== selectedUnit.color) return false;
-        if(capturingUnit instanceof Princess){
-            return false;
-        }
+        if(capturingUnit instanceof Princess) return false;
+        
         new CaptureCommand(selectedUnit, capturingUnit, this._units, this._tiles).Execute();
-        this._moves.push(new Move(selectedUnit, capturingUnit, true))
-        return this.OnTurnFinished();
+        this._moves.push(new Move(selectedUnit, capturingUnit, false))
+        new TurnFinishedCommand(this, this._spellManager, this._validator).Execute(); 
+        return true;
     }
 
-    public UpdatePlayerTurnColor(){
+    public SwapPlayerTurnColor(){
         this._playerTurnColor = (this._playerTurnColor === Color.Blue ? Color.Red : Color.Blue);
     }
+}
 
-    public OnTurnFinished(): boolean{
-        new TurnFinishedCommand(this, this._spellManager, this._validator).Execute();
-        return true
-    }
+export interface MoveUnitResult{
+    selectedUnit: string
+    tile: string,
+    isPeasantPromoted: boolean
 }
