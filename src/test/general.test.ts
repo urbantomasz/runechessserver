@@ -1,6 +1,8 @@
 import { assert, expect, test } from "vitest";
 import { Game } from "../runechess/Game";
-import { ICommand } from "../runechess/Commands";
+import { ICommand, SpellCommand } from "../runechess/Commands";
+import { DestroyTile } from "../runechess/Spell";
+import { random } from "lodash";
 
     
 test("RandomCommandsTest", ()=>{
@@ -17,26 +19,35 @@ test("RandomCommandsTest", ()=>{
     
 })
 
+
 test("RandomCommandsTest2", ()=>{
     var game = new Game();
     var gameJSON = JSON.stringify(game);
-    var commandsExecuted = new Array<ICommand>();
+
+
+    assert.equal(game.Tiles.flat().filter(x => x.isDestroyed).length, 0)
 
     for(let j=1; j<=10; j++){
-        for(let i=0; i<j; i++){
-            var allPossibleCommands = game.GetAllPossibleCommands()
-            var randomCommand = allPossibleCommands[Math.floor(Math.random() * (allPossibleCommands.length-1))]
-            randomCommand.Execute();
-            commandsExecuted.push(randomCommand);
-        }
-    
-        var lastCommandName = commandsExecuted[j-1].constructor.name
+
+        var commandsExecuted = new Array<ICommand>()
 
         for(let i=0; i<j; i++){
+            var allPossibleCommands = game.GetAllPossibleCommands()
+            var randomCommand = allPossibleCommands.pop()
+            if(randomCommand !== undefined){
+                randomCommand.Execute()
+                commandsExecuted.push(randomCommand)
+            }
+        }
+    
+        while(commandsExecuted.length > 0){
             commandsExecuted.pop().Undo();
         }
 
-        assert.equal(gameJSON, JSON.stringify(game), "last command type: " + lastCommandName)
+        console.log("j =: " + j)
+        assert.equal(commandsExecuted.length, 0)
+        assert.equal(game.Tiles.flat().filter(x => x.isDestroyed).length, 0)
+        assert.equal(gameJSON, JSON.stringify(game))
 
     }
    

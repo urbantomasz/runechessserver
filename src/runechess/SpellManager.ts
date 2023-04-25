@@ -161,15 +161,7 @@ export class SpellManager{
             let unitSpell = this._spells.get(castingUnit)
             unitSpell.Cast(castingUnit, targetObject, this);
             
-            if(this._tiles[castingUnit.row][castingUnit.column].isDestroyed){
-                castingUnit.isCaptured = true;
-            }
-
-            if(targetObject instanceof Unit && this._tiles[targetObject.row][targetObject.column].isDestroyed){
-                targetObject.isCaptured = true;
-            }
-
-            let availableMovesAfterCast = this._validator.GetUnitsAvailableMoves(this._units, this._tiles, true);
+            let  availableMovesAfterCast = this._validator.GetUnitsAvailableMoves(this._units, this._tiles, true);
 
 
             //todo optymalizacja maga i kinga
@@ -181,15 +173,6 @@ export class SpellManager{
                     targetsToRemove.push(targetObject);
                     break;
                 }
-            }
-
-            // TODO: upewnic sie ze tak am to wygladac i zdecydowac na sprawdzanei tego podczas castu lub przy wykonywaniu ruchu
-            if(!this._tiles[castingUnit.row][castingUnit.column].isDestroyed){
-                castingUnit.isCaptured = false;
-            }
-
-            if(targetObject instanceof Unit && !this._tiles[targetObject.row][targetObject.column].isDestroyed){
-                targetObject.isCaptured = false;
             }
 
             unitSpell.Undo();
@@ -379,7 +362,7 @@ export class SpellManager{
         let adjacentTileLeft: Tile = null;
         if(firstUnitOnLeft){
             adjacentTileLeft = this._tiles[firstUnitOnLeft.row][firstUnitOnLeft.column - 1];
-            if(!(this._units.find(u => u.row == adjacentTileLeft.row && u.column == adjacentTileLeft.column))){
+            if(!(unitsNotCaptured.find(u => u.row == adjacentTileLeft.row && u.column == adjacentTileLeft.column))){
                 rogueAdjacentTilesMap.set(firstUnitOnLeft, adjacentTileLeft)
                 rogueAdjacentsTiles.push(firstUnitOnLeft);
             }
@@ -389,7 +372,7 @@ export class SpellManager{
         let adjacentTileUp: Tile = null;
         if(firstUnitUp){
             adjacentTileUp =  this._tiles[firstUnitUp.row + 1][firstUnitUp.column];
-            if(!(this._units.find(u => u.row == adjacentTileUp.row && u.column == adjacentTileUp.column))){
+            if(!(unitsNotCaptured.find(u => u.row == adjacentTileUp.row && u.column == adjacentTileUp.column))){
                 rogueAdjacentTilesMap.set(firstUnitUp, adjacentTileUp)
                 rogueAdjacentsTiles.push(firstUnitUp);
             }
@@ -399,7 +382,7 @@ export class SpellManager{
         let adjacentTileDown: Tile = null; 
         if(firstUnitDown){
             adjacentTileDown = this._tiles[firstUnitDown.row - 1][firstUnitDown.column]
-            if(!(this._units.find(u => u.row == adjacentTileDown.row && u.column == adjacentTileDown.column))){
+            if(!(unitsNotCaptured.find(u => u.row == adjacentTileDown.row && u.column == adjacentTileDown.column))){
                 rogueAdjacentTilesMap.set(firstUnitDown, adjacentTileDown)
                 rogueAdjacentsTiles.push(firstUnitDown);
             }
@@ -432,12 +415,11 @@ export class SpellManager{
 
     public CastShadowstep(castingUnit: Unit, targetingUnit: Unit, adjacentTiles: Map<Unit,Tile>){
         let adjacentTile = adjacentTiles.get(targetingUnit);
-        castingUnit.column = adjacentTile.column;
-        castingUnit.row = adjacentTile.row;
+        this.MoveUnit(castingUnit, adjacentTile);
 
         if(targetingUnit.color !== castingUnit.color && !(targetingUnit instanceof Princess)){
             targetingUnit.isCaptured = true;
-            adjacentTile.lastCapturedUnit = targetingUnit;
+            this._tiles[targetingUnit.row][targetingUnit.column].lastCapturedUnit = targetingUnit;
         }
     }
 

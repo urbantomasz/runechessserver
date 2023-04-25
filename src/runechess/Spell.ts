@@ -104,6 +104,7 @@ export class Shadowstep implements ISpell{
     Undo(){
         this._castingUnit.row = this._castingUnitStartingRow;
         this._castingUnit.column = this._castingUnitStartingColumn;
+        this._castingUnit.isCaptured = false;
         this._targetUnit.isCaptured = false;
     }
 }
@@ -127,7 +128,7 @@ export class Ressurection implements ISpell{
         this._targetUnit.isCaptured = true;
         this._targetUnit.color = this._targetUnitColor;
         this._targetTile.lastCapturedUnit = this._targetUnit;
-    }
+    } 
 }
 
 export class DestroyTile implements ISpell{
@@ -141,7 +142,7 @@ export class DestroyTile implements ISpell{
     Cast(castingUnit: Unit, target: GameObject, spellManager: SpellManager){
         this._targetingTile = target as Tile;
         this._targeTileLastCapturedUnit = this._targetingTile.lastCapturedUnit;
-        spellManager.CastDestroyTile(target as Tile);
+        spellManager.CastDestroyTile(this._targetingTile);
     }
 
     Undo(){
