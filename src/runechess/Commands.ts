@@ -14,6 +14,24 @@ export interface ICommand {
     Undo(): void;
 }
 
+export abstract class ITargetCommand implements ICommand {
+     readonly UnitId: string;
+     readonly TargetId: string;
+ 
+     constructor(unit: Unit, target: GameObject) {
+        this.UnitId = unit.id;
+        this.TargetId = target.id;
+     }
+
+    Execute(): void {
+        throw new Error("Method not implemented.");
+    }
+
+    Undo(): void {
+        throw new Error("Method not implemented.");
+    }
+}
+
 export class TurnFinishedCommand implements ICommand{
     private _stateManager: StateManager;
     private _spellManager: SpellManager;
@@ -80,7 +98,9 @@ class PromotePeasantCommand implements ICommand{
     }
 }
 
-export class MoveCommand implements ICommand{
+export class MoveCommand extends ITargetCommand{
+    public readonly UnitId: string;
+    public readonly TargetId: string;
     private _unit: Unit;
     private _unitStartRow: number;
     private _unitStartColumn: number;
@@ -93,6 +113,7 @@ export class MoveCommand implements ICommand{
     }
 
     constructor(unit: Unit, tile: Tile, units: Unit[]) {
+        super(unit, tile);
         this._unit = unit;
         this._tile = tile;
         this._unitIsMoved = unit.isMoved;
@@ -105,6 +126,8 @@ export class MoveCommand implements ICommand{
             this._promotePeasantCommand = null;
         }
     }
+
+
     
     Execute(): void {
         this._unit.column = this._tile.column;
@@ -120,12 +143,15 @@ export class MoveCommand implements ICommand{
     }
 }
 
-export class CaptureCommand implements ICommand{
+export class CaptureCommand extends ITargetCommand{
+    public readonly UnitId: string;
+    public readonly TargetId: string;
     private _moveCommand: MoveCommand;
     private _capturingUnit: Unit;
     private _capturingUnitTile: Tile;
     private _capturingUnitTileLCU: Unit;
     constructor(unit: Unit, capturingUnit: Unit, units: Unit[], tiles: Tile[][]) {
+        super(unit, capturingUnit);
         this._capturingUnit = capturingUnit;
         this._capturingUnitTile = tiles[this._capturingUnit.row][this._capturingUnit.column];
         this._capturingUnitTileLCU = this._capturingUnitTile.lastCapturedUnit;
@@ -143,18 +169,22 @@ export class CaptureCommand implements ICommand{
     }
 }
 
-export class SpellCommand implements ICommand{
+export class SpellCommand extends ITargetCommand{
+    public readonly UnitId: string;
+    public readonly TargetId: string;
     private _unitSpell: ISpell;
     private _targetObject: GameObject;
     private _castingUnit: Unit;
     private _spellManager: SpellManager;
 
     constructor(castingUnit: Unit, targetObject: GameObject, spellManager: SpellManager) {
+        super(castingUnit, targetObject);
         this._castingUnit = castingUnit;
         this._targetObject = targetObject;
         this._unitSpell = spellManager.Spells.get(castingUnit)
         this._spellManager = spellManager;
     }
+
     
     Execute(): void {
         this._unitSpell.Cast(this._castingUnit, this._targetObject, this._spellManager);

@@ -10,141 +10,130 @@ import { IGame } from "./IGame";
 import { Move } from "./Move";
 import { ISpell } from "./Spell";
 import { Bot, BotMove } from "./Bot";
-import { CaptureCommand, ICommand, MoveCommand, SpellCommand } from "./Commands";
-//todo move some subclasses to game maybe as interfaces or abstract classes 
+import { ICommand } from "./Commands";
+//todo move some subclasses to game maybe as interfaces or abstract classes
 export class Game implements IGame {
-    public static BOARD_ROWS = 8;
-    public static BOARD_COLUMNS = 9;
-    private readonly _players: Player[];
-    private readonly _validator: Validator;
-    private readonly _stateManager: StateManager;
-    private readonly _spellManager: SpellManager;
-    private readonly _bot: Bot;
- 
-    constructor() {
-        this._players = [new Player(Color.Blue), new Player(Color.Red)];
-        let tiles = this.initializeTiles();
-        let units = this.initializeUnits();
-        this._validator = new Validator(units, tiles);
-        this._spellManager = new SpellManager(units, tiles, this._validator);
-        this._stateManager = new StateManager(units, tiles, this._validator, this._spellManager);
-        this._bot = new Bot(units, tiles, this._stateManager,  this._spellManager, this._validator);
+  public static BOARD_ROWS = 8;
+  public static BOARD_COLUMNS = 9;
+  private readonly _players: Player[];
+  private readonly _validator: Validator;
+  private readonly _stateManager: StateManager;
+  private readonly _spellManager: SpellManager;
+  private readonly _bot: Bot;
+
+  constructor() {
+    this._players = [new Player(Color.Blue), new Player(Color.Red)];
+    let tiles = this.initializeTiles();
+    let units = this.initializeUnits();
+    this._validator = new Validator(units, tiles);
+    this._spellManager = new SpellManager(units, tiles, this._validator);
+    this._stateManager = new StateManager(
+      units,
+      tiles,
+      this._validator,
+      this._spellManager
+    );
+    this._bot = new Bot(this._stateManager);
+  }
+
+  public GetAllPossibleMoves(): ICommand[] {
+    return this._stateManager.GetAllPossibleMoves();
+  }
+
+  public IsCheck(): boolean {
+    return this._stateManager.IsCheck;
+  }
+
+  public IsMate(): boolean {
+    return this._stateManager.IsMate;
+  }
+
+  public GetBestMove(depth: number): BotMove {
+    return this._bot.GetBestMove(depth);
+  }
+
+  public GetPlayerTurnColor(): Color {
+    return this._stateManager.PlayerTurnColor;
+  }
+
+  public TryMoveUnit(selectedUnitId: string, tileId: string): MoveUnitResult {
+    return this._stateManager.TryMoveUnit(
+      this.GetGameObjectById(selectedUnitId) as Unit,
+      this.GetGameObjectById(tileId) as Tile
+    );
+  }
+
+  public TryCaptureUnit(
+    selectedUnitId: string,
+    capturingUnitId: string
+  ): boolean {
+    return this._stateManager.TryTakeUnit(
+      this.GetGameObjectById(selectedUnitId) as Unit,
+      this.GetGameObjectById(capturingUnitId) as Unit
+    );
+  }
+
+  public TryCastingSpell(castingUnitId: string, targetUnitId: string): boolean {
+    return this._stateManager.TryCastingSpell(
+      this.GetGameObjectById(castingUnitId) as Unit,
+      this.GetGameObjectById(targetUnitId) as Unit
+    );
+  }
+
+  private initializeUnits(): Unit[] {
+    return this._players[0]
+      .GetStartingUnits()
+      .concat(this._players[1].GetStartingUnits());
+  }
+
+  private initializeTiles(): Tile[][] {
+    let tiles: Tile[][] = [];
+    for (let i = 0; i < Game.BOARD_ROWS; i++) {
+      tiles[i] = [];
+      for (let j = 0; j < Game.BOARD_COLUMNS; j++) {
+        tiles[i][j] = new Tile(i, j);
+      }
     }
-    
-    public GetAllPossibleCommands(): ICommand[] {
+    return tiles;
+  }
 
-        let commandsArray: Array<ICommand> = new Array<ICommand>();
+  public get Spells(): Map<Unit, ISpell> {
+    return this._spellManager.Spells;
+  }
 
-        this.UnitsAvailableMoves.forEach((moves, unit) => {
-          moves.Tiles.forEach(tile =>{
-            let moveCommand = new MoveCommand(unit, tile, this.Units);
-            commandsArray.push(moveCommand)
-          })
-  
-          moves.Units.forEach(enemyUnit =>{
-            let captureCommand = new CaptureCommand(unit, enemyUnit, this.Units, this.Tiles);
-            commandsArray.push(captureCommand)
-            })
-          })
-  
-        this.UnitsAvailableCasts.forEach((casts, unit) =>{
-          casts.Targets.forEach(target =>{
-            let spellCommand = new SpellCommand(unit, target, this._spellManager);
-            commandsArray.push(spellCommand)
-          })
-        })
+  public get Tiles(): Tile[][] {
+    return this._stateManager.Tiles;
+  }
 
-        return commandsArray;
-    }
+  public get Moves(): Move[] {
+    return this._stateManager.Moves;
+  }
 
+  public get Units(): Unit[] {
+    return this._stateManager.Units;
+  }
 
-    public IsCheck(): boolean {
-        return this._validator.IsCheck || this._spellManager.IsSpellCheck;
-    }
+  public get UnitsAvailableMoves(): Map<Unit, AvailableMoves> {
+    return this._validator.GetUnitsAvailableMovesByPlayerColor(
+      this._stateManager.PlayerTurnColor
+    );
+  }
 
-    public IsMate(): boolean {
-        return this._validator.IsMate && this._spellManager.IsSpellMate;
-    }
+  public get UnitsAvailableCasts(): Map<Unit, AvailableCasts> {
+    return this._spellManager.GetUnitsAvailableCastsByPlayerColor(
+      this._stateManager.PlayerTurnColor
+    );
+  }
 
-    public GetBestMove(depth: number): BotMove {
-        return this._bot.GetBestMove(depth);
-    }
-
-    public GetPlayerTurnColor(): Color{
-        return this._stateManager.PlayerTurnColor;
-    }
-
-    public TryMoveUnit(selectedUnitId: string, tileId: string): MoveUnitResult{
-        return this._stateManager.TryMoveUnit(
-            this.GetGameObjectById(selectedUnitId) as Unit,
-            this.GetGameObjectById(tileId) as Tile
-        );
-    }
-
-    public TryCaptureUnit(selectedUnitId: string, capturingUnitId: string): boolean{
-        return this._stateManager.TryTakeUnit(
-            this.GetGameObjectById(selectedUnitId) as Unit,
-            this.GetGameObjectById(capturingUnitId) as Unit
-        );
-    }
-
-    public TryCastingSpell(castingUnitId: string, targetUnitId: string): boolean{
-        return this._stateManager.TryCastingSpell(
-            this.GetGameObjectById(castingUnitId) as Unit,
-            this.GetGameObjectById(targetUnitId) as Unit,
-            );
-    }
-
-    private initializeUnits(): Unit[]{
-        return this._players[0].GetStartingUnits().concat(this._players[1].GetStartingUnits());
-    }
-
-    private initializeTiles(): Tile[][] {
-        let tiles: Tile[][] = [];
-        for (let i = 0; i < Game.BOARD_ROWS; i++) {
-            tiles[i] = [];
-            for (let j = 0; j < Game.BOARD_COLUMNS; j++) {
-                tiles[i][j] = new Tile(i, j);
-            }
-        }
-        return tiles;
-    }
-
-    public get Spells(): Map<Unit, ISpell>{
-        return this._spellManager.Spells;
-    }
-
-    public get Tiles(): Tile[][]{
-        return this._stateManager.Tiles;
-    }
-
-    public get Moves(): Move[]{
-        return this._stateManager.Moves;
-    }
-
-    public get Units(): Unit[]{
-        return this._stateManager.Units;
-    }
-
-    public get UnitsAvailableMoves(): Map<Unit, AvailableMoves>{
-        return new Map([...this._validator.UnitsAvailableMoves]
-            .filter(([k,v])=>k.color === this._stateManager.PlayerTurnColor))
-    }
-
-    public get UnitsAvailableCasts(): Map<Unit, AvailableCasts>{
-        return new Map([...this._spellManager.UnitsAvailableCasts]
-            .filter(([k,v])=>k.color === this._stateManager.PlayerTurnColor))
+  public GetGameObjectById(id: string): GameObject {
+    if (id.includes("unit")) {
+      return this._stateManager.GetUnitById(id);
     }
 
-    public GetGameObjectById(id: string): GameObject{
-        if(id.includes("unit")){
-            return this._stateManager.GetUnitById(id);
-        }
-    
-        if(id.includes("tile")){
-            return this._stateManager.GetTileById(id);
-        }
-            
-        return null;
+    if (id.includes("tile")) {
+      return this._stateManager.GetTileById(id);
     }
+
+    return null;
+  }
 }

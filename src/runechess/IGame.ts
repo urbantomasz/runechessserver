@@ -21,7 +21,7 @@ export interface IGame{
     IsCheck(): boolean;
     GetPlayerTurnColor: () => Color;
     GetGameObjectById: (objectId: string) => GameObject;
-    GetAllPossibleCommands(): ICommand[];
+    GetAllPossibleMoves(): ICommand[];
     GetBestMove(depth: number): BotMove;
     TryMoveUnit: (selectedUnitId: string, tileId: string) => MoveUnitResult;
     TryCaptureUnit: (selectedUnitId: string, capturingUnitId: string) => boolean;

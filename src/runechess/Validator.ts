@@ -3,6 +3,7 @@ import { Princess, Unit } from "./Unit";
 import { rotateMatrix90 } from "./Helpers";
 import { Game } from "./Game";
 import { Color, MoveType } from "./Enums";
+import { CaptureCommand, MoveCommand } from "./Commands";
 
 export interface AvailableMoves{
     Tiles: Tile[]
@@ -12,7 +13,6 @@ export interface AvailableMoves{
 export class Validator{
     private readonly _tiles: Tile[][];
     private readonly _units: Unit[];
-    //private readonly _unitsAvailableCasts: Map<Unit, AvailableCasts>;
     private _unitsAvailableMoves: Map<Unit, AvailableMoves>;
     private _isCheck: boolean;
     private _isMate: boolean;
@@ -44,6 +44,11 @@ export class Validator{
     public get UnitsAvailableMoves(): Map<Unit, AvailableMoves>{
         return this._unitsAvailableMoves;
     }
+
+    public GetUnitsAvailableMovesByPlayerColor(playerColor: Color): Map<Unit, AvailableMoves>{
+      return new Map([...this.UnitsAvailableMoves]
+        .filter(([k,v])=>k.color === playerColor))
+  }
 
     public set UnitsAvailableMoves(unitsAvailableMoves: Map<Unit, AvailableMoves>){
       this._unitsAvailableMoves = unitsAvailableMoves;
@@ -215,44 +220,34 @@ export class Validator{
       FilterUnitMovesThatWouldResultInCheck(unit: Unit, unitMovesAvailable: AvailableMoves): void {
         let tilesToRemove = [] as Tile[];
         let unitsToRemove = [] as Unit[];
-        let unitStartingRow = unit.row;
-        let unitStartingColumn = unit.column;
         let princess = this._units.find(u => u instanceof Princess && u.color === unit.color);
 
         unitMovesAvailable.Tiles.forEach(tile => {
-          unit.row = tile.row
-          unit.column = tile.column
-          let availableMovesAfterMove = this.GetUnitsAvailableMoves(this._units, this._tiles, true);
-          for(const [unit, moves] of availableMovesAfterMove){
+          let moveCommand = new MoveCommand(unit, tile, this._units)
+          moveCommand.Execute();
+          let availableMovesAfterExecute = this.GetUnitsAvailableMoves(this._units, this._tiles, true);
+          for(const [unit, moves] of availableMovesAfterExecute){
             if(unit.color === princess.color) continue;
             if(moves.Units.includes(princess)){
               tilesToRemove.push(tile);
               break;
             }
           }
-          unit.row = unitStartingRow;
-          unit.column = unitStartingColumn;
+          moveCommand.Undo();
         });
       
         unitMovesAvailable.Units.forEach(enemyUnit => {
-          unit.row = enemyUnit.row
-          unit.column = enemyUnit.column
-          enemyUnit.isCaptured = true;
-          const lastCapturedUnitCopy = this._tiles[enemyUnit.row][enemyUnit.column].lastCapturedUnit;
-          this._tiles[enemyUnit.row][enemyUnit.column].lastCapturedUnit = enemyUnit;
-          let availableMovesAfterTake = this.GetUnitsAvailableMoves(this._units, this._tiles, true);
-          for(const [unit, moves] of availableMovesAfterTake){
+          let captureCommand = new CaptureCommand(unit, enemyUnit, this._units, this._tiles);
+          captureCommand.Execute()
+          let availableMovesAfterExecute = this.GetUnitsAvailableMoves(this._units, this._tiles, true);
+          for(const [unit, moves] of availableMovesAfterExecute){
             if(unit.color === princess.color) continue;
             if(moves.Units.includes(princess)){
               unitsToRemove.push(enemyUnit);
               break;
             }
           }
-
-          this._tiles[enemyUnit.row][enemyUnit.column].lastCapturedUnit = lastCapturedUnitCopy;
-          enemyUnit.isCaptured = false;
-          unit.row = unitStartingRow;
-          unit.column = unitStartingColumn;
+          captureCommand.Undo();
         });
 
         unitMovesAvailable.Tiles = unitMovesAvailable.Tiles.filter(t => !tilesToRemove.includes(t));
