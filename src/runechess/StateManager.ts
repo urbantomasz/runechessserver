@@ -114,6 +114,11 @@ export class StateManager {
   }
 
   public TryTakeUnit(selectedUnit: Unit, capturingUnit: Unit): boolean {
+    console.log(selectedUnit.id);
+    console.log(capturingUnit.id);
+    console.log(
+      this._tiles[capturingUnit.row][capturingUnit.column].lastCapturedUnit
+    );
     if (
       !this._validator.UnitsAvailableMoves.get(selectedUnit).Units.includes(
         capturingUnit
@@ -129,12 +134,14 @@ export class StateManager {
       this._units,
       this._tiles
     ).Execute();
+
     this._moves.push(new Move(selectedUnit, capturingUnit, false));
     this.FinishTurnCommand().Execute();
     return true;
   }
 
   public FinishTurnCommand() {
+    console.log(this._tiles[6][7].lastCapturedUnit);
     return new TurnFinishedCommand(this, this._spellManager, this._validator);
   }
 

@@ -2,7 +2,7 @@ import { number } from "@colyseus/schema/lib/encoding/decode";
 import { Color, TargetColor } from "./Enums";
 import { Game } from "./Game";
 import { GameObject } from "./GameObject";
-import { SpellManager } from "./SpellManager";
+import { ShadowstepReturnable, SpellManager } from "./SpellManager";
 import { Tile } from "./Tile";
 import { Unit } from "./Unit";
 
@@ -89,6 +89,7 @@ export class Shadowstep implements ISpell {
   _targetUnit: Unit;
   _castingUnitStartingRow: number;
   _castingUnitStartingColumn: number;
+  _shadowstepReturnable: ShadowstepReturnable;
 
   GetValidTargets(castingUnit: Unit, spellManager: SpellManager): Unit[] {
     let shadowstepCastables = spellManager.GetShadowstepCastables(castingUnit);
@@ -102,7 +103,7 @@ export class Shadowstep implements ISpell {
     this._castingUnitStartingRow = castingUnit.row;
     this._castingUnitStartingColumn = castingUnit.column;
 
-    spellManager.CastShadowstep(
+    this._shadowstepReturnable = spellManager.CastShadowstep(
       castingUnit,
       target as Unit,
       this._adjacentsTiles
@@ -113,7 +114,11 @@ export class Shadowstep implements ISpell {
     this._castingUnit.row = this._castingUnitStartingRow;
     this._castingUnit.column = this._castingUnitStartingColumn;
     this._castingUnit.isCaptured = false;
-    this._targetUnit.isCaptured = false;
+    if (this._shadowstepReturnable !== null) {
+      this._targetUnit.isCaptured = false;
+      this._shadowstepReturnable.targetUnitTile.lastCapturedUnit =
+        this._shadowstepReturnable.targetUnitTileLCU;
+    }
   }
 }
 

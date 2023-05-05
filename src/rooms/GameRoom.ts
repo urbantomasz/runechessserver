@@ -61,6 +61,7 @@ export class GameRoom extends Room {
     if (this._game.IsMate()) {
       this.broadcast("GameOver", {
         winnerColor: playerTurnColor === 0 ? 1 : 0,
+        //dbConnection.insertMatch(new Date(Date.now()), 1, 2, true);
       });
     } else {
       if (this._isPlayground && playerTurnColor !== Color.Blue) {

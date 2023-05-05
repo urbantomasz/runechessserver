@@ -380,13 +380,16 @@ export class SpellManager {
 
   GetSwapCastables(castingUnit: Unit): Unit[] {
     let unitsNotCaptured = this._units.filter((u) => !u.isCaptured);
-    let unitsAlly = unitsNotCaptured.filter(
-      (u) => u.color == castingUnit.color
+    // let unitsAlly = unitsNotCaptured.filter(
+    //   (u) => u.color == castingUnit.color
+    // );
+    let unitsToConsiderRow = unitsNotCaptured.filter(
+      (u) => u.row == castingUnit.row
     );
-    let unitsToConsiderRow = unitsAlly.filter((u) => u.row == castingUnit.row);
-    let unitsToConsiderColumn = unitsAlly.filter(
+    let unitsToConsiderColumn = unitsNotCaptured.filter(
       (unit) => unit.column == castingUnit.column
     );
+
     let firstUnitOnRight = unitsToConsiderRow
       .sort((unit1, unit2) => unit1.column - unit2.column)
       .find((unit) => unit.column > castingUnit.column);
@@ -401,10 +404,10 @@ export class SpellManager {
       .find((unit) => unit.row < castingUnit.row);
 
     return [
-      firstUnitOnRight,
-      firstUnitOnLeft,
-      firstUnitUp,
-      firstUnitDown,
+      firstUnitOnRight?.color === castingUnit.color ? firstUnitOnRight : null,
+      firstUnitOnLeft?.color === castingUnit.color ? firstUnitOnLeft : null,
+      firstUnitUp?.color === castingUnit.color ? firstUnitUp : null,
+      firstUnitDown?.color === castingUnit.color ? firstUnitDown : null,
     ].filter((x) => x);
   }
 
@@ -548,7 +551,8 @@ export class SpellManager {
     castingUnit: Unit,
     targetingUnit: Unit,
     adjacentTiles: Map<Unit, Tile>
-  ) {
+  ): ShadowstepReturnable {
+    let shadowstepReturnable = null;
     let adjacentTile = adjacentTiles.get(targetingUnit);
     this.MoveUnit(castingUnit, adjacentTile);
 
@@ -556,10 +560,17 @@ export class SpellManager {
       targetingUnit.color !== castingUnit.color &&
       !(targetingUnit instanceof Princess)
     ) {
+      shadowstepReturnable = {
+        targetUnitTile: this._tiles[targetingUnit.row][targetingUnit.column],
+        targetUnitTileLCU:
+          this._tiles[targetingUnit.row][targetingUnit.column].lastCapturedUnit,
+      };
       targetingUnit.isCaptured = true;
       this._tiles[targetingUnit.row][targetingUnit.column].lastCapturedUnit =
         targetingUnit;
     }
+
+    return shadowstepReturnable;
   }
 
   public GetResurrectionCastables(castingUnit: Unit): Unit[] {
@@ -571,7 +582,13 @@ export class SpellManager {
     let ressurectableUnits = lastCapturedUnits.filter((capturedUnit) => {
       return (
         Math.abs(castingUnit.row - capturedUnit.row) <= 1 &&
-        Math.abs(castingUnit.column - capturedUnit.column) <= 1
+        Math.abs(castingUnit.column - capturedUnit.column) <= 1 &&
+        this._units.find(
+          (u) =>
+            u.row === capturedUnit.row &&
+            u.column === capturedUnit.column &&
+            !u.isCaptured
+        ) === undefined
       );
     });
 
@@ -584,4 +601,9 @@ export class SpellManager {
     this._tiles[targetUnit.row][targetUnit.column].lastCapturedUnit = null;
     return this._tiles[targetUnit.row][targetUnit.column];
   }
+}
+
+export interface ShadowstepReturnable {
+  targetUnitTile: Tile;
+  targetUnitTileLCU: Unit;
 }
