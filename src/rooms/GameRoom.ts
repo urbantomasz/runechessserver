@@ -20,8 +20,12 @@ import {
   SpellCommand,
 } from "../runechess/Commands";
 
+const dbConnection = require("./../index");
+
 export class GameRoom extends Room {
   private _game: IGame;
+  private _bluePlayerName: string = null;
+  private _redPlayerName: string = null;
   private _bluePlayerId: string = null;
   private _redPlayerId: string = null;
   private _isPlayground: boolean = false;
@@ -61,8 +65,13 @@ export class GameRoom extends Room {
     if (this._game.IsMate()) {
       this.broadcast("GameOver", {
         winnerColor: playerTurnColor === 0 ? 1 : 0,
-        //dbConnection.insertMatch(new Date(Date.now()), 1, 2, true);
       });
+      dbConnection.insertMatch(
+        new Date(Date.now()),
+        this._bluePlayerId,
+        this._redPlayerId,
+        true
+      );
     } else {
       if (this._isPlayground && playerTurnColor !== Color.Blue) {
         setTimeout(() => this.makeBotMove(), 1000);
@@ -87,6 +96,9 @@ export class GameRoom extends Room {
       Moves: this._game.Moves.map((x) => x.toNotationString()),
       BluePlayerRemainingTime: this._bluePlayerRemainingTime,
       RedPlayerRemainingTime: this._redPlayerRemainingTime,
+      BluePlayerName: this._bluePlayerName,
+      RedPlayerName: this._redPlayerName,
+      PlayerTurnColor: this._game.GetPlayerTurnColor(),
     };
   }
 
@@ -117,8 +129,10 @@ export class GameRoom extends Room {
 
     if (this._bluePlayerId === null) {
       this._bluePlayerId = client.id;
+      this._bluePlayerName = options.name;
     } else if (this._redPlayerId === null) {
       this._redPlayerId = client.id;
+      this._redPlayerName = options.name;
     }
 
     client.send("StateChange", this.getGameStateData());
