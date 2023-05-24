@@ -48,6 +48,14 @@ export class Game implements IGame {
     return this._stateManager.IsMate;
   }
 
+  public IsStaleMate(): boolean {
+    return this._stateManager.IsStaleMate;
+  }
+
+  public Is50MoveRule(): boolean {
+    return this._stateManager.Is50MoveRule;
+  }
+
   public GetBestMove(depth: number): BotMove {
     return this._bot.GetBestMove(depth);
   }
@@ -106,7 +114,7 @@ export class Game implements IGame {
   }
 
   public get Moves(): Move[] {
-    return this._stateManager.Moves;
+    return [] as Move[];
   }
 
   public get Units(): Unit[] {

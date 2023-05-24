@@ -10,7 +10,7 @@ import { Validator } from "./Validator";
 import {
   CaptureCommand,
   ICommand,
-  ITargetCommand,
+  TargetCommand,
   MoveCommand,
   SpellCommand,
   TurnFinishedCommand,
@@ -20,9 +20,9 @@ export class StateManager {
   private _validator: Validator;
   private _spellManager: SpellManager;
   private _tiles: Tile[][];
-  private _moves: Move[] = [] as Move[];
   private _units: Unit[];
   private _playerTurnColor: Color;
+  private _commands: TargetCommand[] = [];
 
   constructor(
     units: Unit[],
@@ -51,8 +51,8 @@ export class StateManager {
     this._playerTurnColor = color;
   }
 
-  public get Moves() {
-    return this._moves;
+  public get Commands() {
+    return this._commands;
   }
 
   public get IsStaleMate(): boolean {
@@ -65,6 +65,10 @@ export class StateManager {
 
   public get IsMate(): boolean {
     return this._validator.IsMate && this._spellManager.IsSpellMate;
+  }
+
+  public get Is50MoveRule(): boolean {
+    return this._commands.length >= 2;
   }
 
   public GetUnitById(id: string): Unit {
@@ -91,9 +95,15 @@ export class StateManager {
       return false;
     if (this._playerTurnColor !== castingUnit.color) return false;
 
-    new SpellCommand(castingUnit, targetObject, this._spellManager).Execute();
-    this._moves.push(new Move(castingUnit, targetObject, true));
-    this.FinishTurnCommand().Execute();
+    var spellCommand = new SpellCommand(
+      castingUnit,
+      targetObject,
+      this._spellManager
+    );
+
+    spellCommand.Execute();
+
+    this.FinishTurnCommand(spellCommand).Execute();
     return true;
   }
 
@@ -103,9 +113,11 @@ export class StateManager {
     if (this._playerTurnColor !== unit.color) return;
 
     let moveCommand = new MoveCommand(unit, tile, this._units);
+
     moveCommand.Execute();
-    this._moves.push(new Move(unit, tile));
-    this.FinishTurnCommand().Execute();
+
+    this.FinishTurnCommand(moveCommand).Execute();
+
     return {
       selectedUnit: unit.id,
       tile: tile.id,
@@ -128,20 +140,22 @@ export class StateManager {
     if (this._playerTurnColor !== selectedUnit.color) return false;
     if (capturingUnit instanceof Princess) return false;
 
-    new CaptureCommand(
+    var captureCommand = new CaptureCommand(
       selectedUnit,
       capturingUnit,
       this._units,
       this._tiles
-    ).Execute();
+    );
 
-    this._moves.push(new Move(selectedUnit, capturingUnit, false));
-    this.FinishTurnCommand().Execute();
+    captureCommand.Execute();
+    this.FinishTurnCommand(captureCommand).Execute();
     return true;
   }
 
-  public FinishTurnCommand() {
-    console.log(this._tiles[6][7].lastCapturedUnit);
+  public FinishTurnCommand(command: TargetCommand | null = null) {
+    if (command !== null) {
+      this._commands.push(command);
+    }
     return new TurnFinishedCommand(this, this._spellManager, this._validator);
   }
 
@@ -150,8 +164,8 @@ export class StateManager {
       this._playerTurnColor === Color.Blue ? Color.Red : Color.Blue;
   }
 
-  public GetAllPossibleMoves(): ITargetCommand[] {
-    let commandsArray: Array<ITargetCommand> = new Array<ITargetCommand>();
+  public GetAllPossibleMoves(): TargetCommand[] {
+    let commandsArray: Array<TargetCommand> = new Array<TargetCommand>();
 
     this._validator
       .GetUnitsAvailableMovesByPlayerColor(this._playerTurnColor)

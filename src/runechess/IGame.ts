@@ -8,22 +8,24 @@ import { MoveUnitResult } from "./StateManager";
 import { Tile } from "./Tile";
 import { Unit } from "./Unit";
 import { AvailableMoves } from "./Validator";
-import { ICommand} from "./Commands"
+import { ICommand } from "./Commands";
 
-export interface IGame{
-    Units: Unit[];
-    Tiles: Tile[][];
-    UnitsAvailableMoves: Map<Unit, AvailableMoves>
-    UnitsAvailableCasts: Map<Unit, AvailableCasts>
-    Spells: Map<Unit, ISpell>
-    Moves: Move[];
-    IsMate(): boolean;
-    IsCheck(): boolean;
-    GetPlayerTurnColor: () => Color;
-    GetGameObjectById: (objectId: string) => GameObject;
-    GetAllPossibleMoves(): ICommand[];
-    GetBestMove(depth: number): BotMove;
-    TryMoveUnit: (selectedUnitId: string, tileId: string) => MoveUnitResult;
-    TryCaptureUnit: (selectedUnitId: string, capturingUnitId: string) => boolean;
-    TryCastingSpell: (castingUnitId: string, targetUnitId: string) => boolean;
+export interface IGame {
+  Units: Unit[];
+  Tiles: Tile[][];
+  UnitsAvailableMoves: Map<Unit, AvailableMoves>;
+  UnitsAvailableCasts: Map<Unit, AvailableCasts>;
+  Spells: Map<Unit, ISpell>;
+  Moves: Move[];
+  IsMate(): boolean;
+  IsCheck(): boolean;
+  IsStaleMate(): boolean;
+  Is50MoveRule(): boolean;
+  GetPlayerTurnColor: () => Color;
+  GetGameObjectById: (objectId: string) => GameObject;
+  GetAllPossibleMoves(): ICommand[];
+  GetBestMove(depth: number): BotMove;
+  TryMoveUnit: (selectedUnitId: string, tileId: string) => MoveUnitResult;
+  TryCaptureUnit: (selectedUnitId: string, capturingUnitId: string) => boolean;
+  TryCastingSpell: (castingUnitId: string, targetUnitId: string) => boolean;
 }

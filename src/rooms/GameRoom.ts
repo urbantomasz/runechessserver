@@ -20,7 +20,7 @@ import {
   SpellCommand,
 } from "../runechess/Commands";
 
-const dbConnection = require("./../index");
+const dbConnection = require("./../dbConnection");
 
 export class GameRoom extends Room {
   private _game: IGame;
@@ -62,16 +62,23 @@ export class GameRoom extends Room {
 
     this._lastMoveTimeStamp = currentMoveTimeStamp;
 
-    if (this._game.IsMate()) {
+    if (
+      this._game.IsMate() ||
+      this._game.Is50MoveRule() ||
+      this._game.IsStaleMate()
+    ) {
       this.broadcast("GameOver", {
         winnerColor: playerTurnColor === 0 ? 1 : 0,
       });
-      dbConnection.insertMatch(
-        new Date(Date.now()),
-        this._bluePlayerId,
-        this._redPlayerId,
-        true
-      );
+      if (!this._isPlayground) {
+        dbConnection.insertMatch(
+          new Date(Date.now()),
+          this._bluePlayerId,
+          this._redPlayerId,
+          true
+        );
+        this.disconnect();
+      }
     } else {
       if (this._isPlayground && playerTurnColor !== Color.Blue) {
         setTimeout(() => this.makeBotMove(), 1000);
