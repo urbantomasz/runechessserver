@@ -117,7 +117,7 @@ export class SpellManager {
       if (unit.usedSpell || unit.isCaptured || !this._spells.has(unit)) {
         this._unitsAvailableCasts.set(unit, { Targets: [] });
       } else {
-        console.time("spell: " + unit.constructor.name);
+        //console.time("spell: " + unit.constructor.name);
         let unitValidTargets = {
           Targets: this._spells.get(unit).GetValidTargets(unit, this),
         };
@@ -125,15 +125,17 @@ export class SpellManager {
           this.FilterUnitCastsThatWouldResultInCheck(unit, unitValidTargets);
         }
         this._unitsAvailableCasts.set(unit, unitValidTargets);
-        console.timeEnd("spell: " + unit.constructor.name);
+        //console.timeEnd("spell: " + unit.constructor.name);
       }
     });
     console.timeEnd("updateUnitsAvailableCasts");
-    this._isSpellCheck = this.checkIfSpellCheck();
-    this._isSpellMate = this.checkIfSpellMate();
+    this.checkIfSpellCheck();
+    this.checkIfSpellMate();
+    console.log("Is Spell Check? " + this._isSpellCheck);
+    console.log("Is Spell Mate? " + this._isSpellMate);
   }
 
-  private checkIfSpellMate(): boolean {
+  private checkIfSpellMate(): void {
     let bluePlayerMoves = 0;
     let redPlayersMoves = 0;
     for (const [unit, cast] of this._unitsAvailableCasts) {
@@ -144,10 +146,10 @@ export class SpellManager {
         redPlayersMoves++;
       }
     }
-    return bluePlayerMoves === 0 || redPlayersMoves === 0;
+    this._isSpellMate = bluePlayerMoves === 0 || redPlayersMoves === 0;
   }
 
-  private checkIfSpellCheck(): boolean {
+  private checkIfSpellCheck(): void {
     let isSpellCheck = false;
     for (let [unit, availableCasts] of this.UnitsAvailableCasts) {
       if (availableCasts.Targets.length === 0) continue;
@@ -158,15 +160,16 @@ export class SpellManager {
       ) {
         isSpellCheck = true;
       }
-      // if(unitSpell instanceof PowerStomp){
-      //     for (let [unit, tile] of unitSpell._tilesBehindMap.get(unit)) {
-      //         if(unit instanceof Princess && tile.isDestroyed === true){
-      //             isSpellCheck = true;
-      //         }
-      //     }
-      // }
+      if (unitSpell instanceof PowerStomp) {
+        for (let [_, unitTileMap] of unitSpell._tilesBehindMap) {
+          let unitTile = [...unitTileMap][0];
+          if (unitTile[0] instanceof Princess && unitTile[1].isDestroyed) {
+            isSpellCheck = true;
+          }
+        }
+      }
     }
-    return isSpellCheck;
+    this._isSpellCheck = isSpellCheck;
   }
 
   FilterUnitCastsThatWouldResultInCheck(

@@ -68,7 +68,7 @@ export class StateManager {
   }
 
   public get Is50MoveRule(): boolean {
-    return this._commands.length >= 2;
+    return this._commands.length >= 500;
   }
 
   public GetUnitById(id: string): Unit {
