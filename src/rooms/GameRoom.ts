@@ -70,15 +70,15 @@ export class GameRoom extends Room {
       this.broadcast("GameOver", {
         winnerColor: playerTurnColor === 0 ? 1 : 0,
       });
-      if (!this._isPlayground) {
-        dbConnection.insertMatch(
-          new Date(Date.now()),
-          this._bluePlayerId,
-          this._redPlayerId,
-          true
-        );
-        this.disconnect();
-      }
+
+      dbConnection.insertMatch(
+        new Date(Date.now()),
+        this._bluePlayerId,
+        this._redPlayerId,
+        playerTurnColor === 0 ? 1 : 0
+      );
+
+      this.disconnect();
     } else {
       if (this._isPlayground && playerTurnColor !== Color.Blue) {
         setTimeout(() => this.makeBotMove(), 1000);
@@ -133,7 +133,7 @@ export class GameRoom extends Room {
 
   onJoin(client: Client, options?: any, auth?: any): void | Promise<any> {
     console.log(client.id + " joined to gameroom");
-
+    console.log(options);
     if (this._bluePlayerId === null) {
       this._bluePlayerId = client.id;
       this._bluePlayerName = options.name;
@@ -151,6 +151,8 @@ export class GameRoom extends Room {
     ) {
       this.broadcast("GameStart");
     } else if (this._isPlayground) {
+      this._redPlayerId = "easyBot";
+      this._redPlayerName = "Easy Bot";
       this.broadcast("GameStart");
     }
   }
@@ -186,8 +188,48 @@ export class GameRoom extends Room {
 
   onLeave(client: Client, consented: boolean) {
     console.log(client.sessionId, "left!");
-    if (client.id === this._bluePlayerId) this._bluePlayerId = null;
-    if (client.id === this._redPlayerId) this._redPlayerId = null;
+    console.log("OnLeave method triggered.");
+
+    let leavingPlayerColor: Color;
+    if (client.id === this._bluePlayerId) {
+      leavingPlayerColor = Color.Blue;
+    }
+    if (client.id === this._redPlayerId) {
+      leavingPlayerColor = Color.Red;
+    }
+
+    console.log("Leaving Player Color: ", leavingPlayerColor);
+
+    const isGameOver =
+      this._game.IsMate() ||
+      this._game.Is50MoveRule() ||
+      this._game.IsStaleMate();
+
+    console.log("Is Game Over: ", isGameOver);
+
+    // If a player has left and the game is not already over, declare the other player as the winner.
+    if (!isGameOver) {
+      let winnerColor =
+        leavingPlayerColor === Color.Blue ? Color.Red : Color.Blue;
+
+      console.log("Winner Color: ", winnerColor);
+
+      // Broadcasting to all clients about the game over and the winner
+      this.broadcast("GameOver", {
+        winnerColor: winnerColor,
+      });
+
+      // Insert the match result into the database
+      console.log("BluePlayerId: ", this._bluePlayerId);
+      console.log("RedPlayerId: ", this._redPlayerId);
+      dbConnection.insertMatch(
+        new Date(Date.now()),
+        this._bluePlayerId,
+        this._redPlayerId,
+        winnerColor
+      );
+      this.disconnect();
+    }
   }
 
   onDispose() {
@@ -205,17 +247,13 @@ export class GameRoom extends Room {
 
   private tryCaptureUnit(data: TryCaptureUnitData) {
     //if(!this._isPlayground && !(client.id === (this._game.GetPlayerTurnColor() === Color.Blue ? this._bluePlayerId : this._redPlayerId))) return;
-    if (this._game.TryCaptureUnit(data.selectedUnit, data.capturingUnit)) {
+    var captureUnitResult = this._game.TryCaptureUnit(
+      data.selectedUnit,
+      data.capturingUnit
+    );
+    if (captureUnitResult !== null) {
       this.updateState();
-      let selectedUnit = this._game.GetGameObjectById(data.selectedUnit);
-      this.broadcast("UnitCaptured", {
-        selectedUnit: data.selectedUnit,
-        selectedUnitPosition: {
-          row: selectedUnit.row,
-          column: selectedUnit.column,
-        },
-        capturedUnit: data.capturingUnit,
-      });
+      this.broadcast("UnitCaptured", captureUnitResult);
     }
   }
 
@@ -230,9 +268,9 @@ export class GameRoom extends Room {
       const targetingTile = this._game.GetGameObjectById(
         data.targetingObject
       ) as Tile;
-      let unitTileMap = new Map<string, { row: number; column: number }>();
+      let unitTileMap = new Map<string, string>();
       unitSpell._tilesBehindMap.get(targetingTile).forEach((v, k) => {
-        unitTileMap.set(k.id, { row: v.row, column: v.column });
+        unitTileMap.set(k.id, Tile.CreateTileId(v.row, v.column));
       });
       let unitTileMapStringifed = JSON.stringify(
         Array.from(unitTileMap.entries())
@@ -252,14 +290,14 @@ export class GameRoom extends Room {
         );
         this.broadcast("SpellCasted", {
           castingUnit: data.castingUnit,
-          castingUnitNewPosition: new Position(
-            castingUnit.column,
-            castingUnit.row
+          castingUnitNewTile: Tile.CreateTileId(
+            castingUnit.row,
+            castingUnit.column
           ),
           targetingUnit: data.targetingObject,
-          targetingUnitNewPosition: new Position(
-            targetingUnit.column,
-            targetingUnit.row
+          targetingUnitNewTile: Tile.CreateTileId(
+            targetingUnit.row,
+            targetingUnit.column
           ),
         });
       }
@@ -271,14 +309,14 @@ export class GameRoom extends Room {
         );
         this.broadcast("SpellCasted", {
           castingUnit: data.castingUnit,
-          castingUnitNewPosition: new Position(
-            castingUnit.column,
-            castingUnit.row
+          castingUnitNewTile: Tile.CreateTileId(
+            castingUnit.row,
+            castingUnit.column
           ),
           targetingUnit: data.targetingObject,
-          targetingUnitNewPosition: new Position(
-            targetingUnit.column,
-            targetingUnit.row
+          targetingUnitNewTile: Tile.CreateTileId(
+            targetingUnit.row,
+            targetingUnit.column
           ),
         });
       }

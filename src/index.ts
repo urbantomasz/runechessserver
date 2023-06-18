@@ -35,6 +35,16 @@ app.get("/api/matches", async (req, res) => {
   }
 });
 
+app.get("/api/ranking", async (req, res) => {
+  try {
+    const ranking = await dbConnection.getRanking();
+    res.json(ranking);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch ranking" });
+  }
+});
+
 const gameServer = new Server({
   transport: new WebSocketTransport({
     server: createServer(app),

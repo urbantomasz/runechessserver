@@ -4,7 +4,7 @@ import { GameObject } from "./GameObject";
 import { Move } from "./Move";
 import { ISpell } from "./Spell";
 import { AvailableCasts } from "./SpellManager";
-import { MoveUnitResult } from "./StateManager";
+import { CaptureUnitResult, MoveUnitResult } from "./StateManager";
 import { Tile } from "./Tile";
 import { Unit } from "./Unit";
 import { AvailableMoves } from "./Validator";
@@ -26,6 +26,9 @@ export interface IGame {
   GetAllPossibleMoves(): ICommand[];
   GetBestMove(depth: number): BotMove;
   TryMoveUnit: (selectedUnitId: string, tileId: string) => MoveUnitResult;
-  TryCaptureUnit: (selectedUnitId: string, capturingUnitId: string) => boolean;
+  TryCaptureUnit: (
+    selectedUnitId: string,
+    capturingUnitId: string
+  ) => CaptureUnitResult;
   TryCastingSpell: (castingUnitId: string, targetUnitId: string) => boolean;
 }

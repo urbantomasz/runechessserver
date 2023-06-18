@@ -125,7 +125,10 @@ export class StateManager {
     };
   }
 
-  public TryTakeUnit(selectedUnit: Unit, capturingUnit: Unit): boolean {
+  public TryTakeUnit(
+    selectedUnit: Unit,
+    capturingUnit: Unit
+  ): CaptureUnitResult {
     console.log(selectedUnit.id);
     console.log(capturingUnit.id);
     console.log(
@@ -136,9 +139,9 @@ export class StateManager {
         capturingUnit
       )
     )
-      return false;
-    if (this._playerTurnColor !== selectedUnit.color) return false;
-    if (capturingUnit instanceof Princess) return false;
+      return;
+    if (this._playerTurnColor !== selectedUnit.color) return;
+    if (capturingUnit instanceof Princess) return;
 
     var captureCommand = new CaptureCommand(
       selectedUnit,
@@ -149,7 +152,13 @@ export class StateManager {
 
     captureCommand.Execute();
     this.FinishTurnCommand(captureCommand).Execute();
-    return true;
+
+    return {
+      selectedUnit: selectedUnit.id,
+      selectedUnitNewTile: captureCommand.CapturingUnitTile.id,
+      capturedUnit: capturingUnit.id,
+      isPeasantPromoted: captureCommand.moveCommand.IsPeasantPromoted,
+    };
   }
 
   public FinishTurnCommand(command: TargetCommand | null = null) {
@@ -205,3 +214,17 @@ export interface MoveUnitResult {
   tile: string;
   isPeasantPromoted: boolean;
 }
+
+export interface CaptureUnitResult {
+  selectedUnit: string;
+  selectedUnitNewTile: string;
+  capturedUnit: string;
+  isPeasantPromoted: boolean;
+}
+
+// selectedUnit: data.selectedUnit,
+// selectedUnitNewTile: Tile.CreateTileId(
+//   selectedUnit.row,
+//   selectedUnit.column
+// ),
+// capturedUnit: data.capturingUnit,

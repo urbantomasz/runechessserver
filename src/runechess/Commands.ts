@@ -153,27 +153,32 @@ export class MoveCommand extends TargetCommand {
 export class CaptureCommand extends TargetCommand {
   public readonly UnitId: string;
   public readonly TargetId: string;
-  private _moveCommand: MoveCommand;
+  public moveCommand: MoveCommand;
   private _capturingUnit: Unit;
   private _capturingUnitTile: Tile;
   private _capturingUnitTileLCU: Unit;
+
+  public get CapturingUnitTile(): Tile {
+    return this._capturingUnitTile;
+  }
+
   constructor(unit: Unit, capturingUnit: Unit, units: Unit[], tiles: Tile[][]) {
     super(unit, capturingUnit);
     this._capturingUnit = capturingUnit;
     this._capturingUnitTile =
       tiles[this._capturingUnit.row][this._capturingUnit.column];
     this._capturingUnitTileLCU = this._capturingUnitTile.lastCapturedUnit;
-    this._moveCommand = new MoveCommand(unit, this._capturingUnitTile, units);
+    this.moveCommand = new MoveCommand(unit, this._capturingUnitTile, units);
   }
   Execute(): void {
     this._capturingUnit.isCaptured = true;
     this._capturingUnitTile.lastCapturedUnit = this._capturingUnit;
-    this._moveCommand.Execute();
+    this.moveCommand.Execute();
   }
   Undo(): void {
     this._capturingUnit.isCaptured = false;
     this._capturingUnitTile.lastCapturedUnit = this._capturingUnitTileLCU;
-    this._moveCommand.Undo();
+    this.moveCommand.Undo();
   }
 }
 

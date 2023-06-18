@@ -1,5 +1,6 @@
 import { Client, matchMaker, Room } from "colyseus";
 import { LobbyRoomSchema, PlayerSchema } from "./schema/LobbyRoomSchema";
+import { Color } from "../runechess/Enums";
 
 const dbConnection = require("./../dbConnection");
 
@@ -54,8 +55,14 @@ export class LobbyRoom extends Room<LobbyRoomSchema> {
           await gameRoom,
           this.state.players[clientRedId]
         );
-        clientBlue.send("SeatReservation", blueReservation);
-        clientRed.send("SeatReservation", redReservation);
+        clientBlue.send("SeatReservation", {
+          reservation: blueReservation,
+          color: Color.Blue,
+        });
+        clientRed.send("SeatReservation", {
+          reservation: redReservation,
+          color: Color.Red,
+        });
       }
     }
   }

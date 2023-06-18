@@ -34,11 +34,33 @@ class DBConnection {
 
       const connection = await this.getConnection();
       const request = new mssql.Request(connection);
-      const result = await request.query("SELECT * FROM Matches;");
+      const result = await request.query("SELECT * FROM MatchesView;");
 
       // Cache the results
       matchesCache.set("matches", result.recordset);
       console.log("Matches fetched from the database and cached");
+      return result.recordset;
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  async getRanking() {
+    try {
+      const cachedRanking = matchesCache.get("ranking");
+
+      if (cachedRanking) {
+        console.log("Returning cached matches");
+        return cachedRanking;
+      }
+
+      const connection = await this.getConnection();
+      const request = new mssql.Request(connection);
+      const result = await request.query("SELECT * FROM RankingView;");
+
+      // Cache the results
+      matchesCache.set("ranking", result.recordset);
+      console.log("Ranking fetched from the database and cached");
       return result.recordset;
     } catch (error) {
       console.log(error);
@@ -75,22 +97,45 @@ class DBConnection {
 
   async insertMatch(
     date: Date,
-    bluePlayerId: number,
-    redPlayerId: number,
+    bluePlayerGoogleId: string,
+    redPlayerGoogleId: string,
     result: boolean
   ) {
     try {
       const connection = await this.getConnection();
       const request = new mssql.Request(connection);
+
+      // Fetch Ids from Players table for both blue and red players
+      const bluePlayerQuery = `SELECT Id FROM Players WHERE GoogleId = @bluePlayerGoogleId`;
+      const redPlayerQuery = `SELECT Id FROM Players WHERE GoogleId = @redPlayerGoogleId`;
+
+      request.input("bluePlayerGoogleId", mssql.NVarChar, bluePlayerGoogleId);
+      request.input("redPlayerGoogleId", mssql.NVarChar, redPlayerGoogleId);
+
+      const bluePlayerResult = await request.query(bluePlayerQuery);
+      const redPlayerResult = await request.query(redPlayerQuery);
+
+      if (
+        bluePlayerResult.recordset.length === 0 ||
+        redPlayerResult.recordset.length === 0
+      ) {
+        console.error("One or both player Ids not found");
+        return;
+      }
+
+      const bluePlayerId = bluePlayerResult.recordset[0].Id;
+      const redPlayerId = redPlayerResult.recordset[0].Id;
+
+      // Now insert into Matches
       request.input("date", mssql.Date, date);
       request.input("bluePlayerId", mssql.Int, bluePlayerId);
       request.input("redPlayerId", mssql.Int, redPlayerId);
       request.input("result", mssql.Bit, result);
 
       const query = `
-          INSERT INTO Matches (date, blueplayerid, redplayerid, result)
-          VALUES (@date, @bluePlayerId, @redPlayerId, @result);
-        `;
+        INSERT INTO Matches (date, blueplayerid, redplayerid, result)
+        VALUES (@date, @bluePlayerId, @redPlayerId, @result);
+      `;
 
       await request.query(query);
       console.log("Record inserted successfully");

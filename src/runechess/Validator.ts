@@ -137,7 +137,10 @@ export class Validator {
     tilesOnBoard: Tile[][]
   ): AvailableMoves {
     let movePattern = unit.movePattern;
-    let unitsPlacement = this.createUnitsPlacementArray(unitsOnBoard);
+    let unitsPlacement = this.createUnitsPlacementArray(
+      unitsOnBoard,
+      tilesOnBoard
+    );
     movePattern = rotateMatrix90(movePattern);
     if (unit.color != Color.Blue) {
       movePattern = this.rotateMovePattern(movePattern);
@@ -165,6 +168,10 @@ export class Validator {
           i,
           j
         );
+
+        if (tilesOnBoard[i][j].isDestroyed) {
+          unitsPlacement[i][j] = -1;
+        }
       }
     }
 
@@ -211,7 +218,7 @@ export class Validator {
     return movePattern;
   }
 
-  createUnitsPlacementArray(units: Unit[]): number[][] {
+  createUnitsPlacementArray(units: Unit[], tiles: Tile[][]): number[][] {
     let unitsPlacement = Array(Game.BOARD_ROWS).fill(-1);
 
     for (let i = 0; i < Game.BOARD_COLUMNS; i++) {
@@ -221,6 +228,14 @@ export class Validator {
     units.forEach((u) => {
       unitsPlacement[u.row][u.column] = 1;
     });
+
+    for (let i = 0; i < Game.BOARD_ROWS; i++) {
+      for (let j = 0; j < Game.BOARD_COLUMNS; j++) {
+        if (tiles[i][j].isDestroyed) {
+          unitsPlacement[i][j] = -9;
+        }
+      }
+    }
 
     return unitsPlacement;
   }
@@ -257,6 +272,9 @@ export class Validator {
           jIter >= 0 &&
           jIter < Game.BOARD_COLUMNS
         ) {
+          if (unitsPlacement[iIter][jIter] == -9) {
+            break;
+          }
           unitsPlacement[iIter][jIter] = unitsPlacement[iIter][jIter] + 1;
           if (
             unitsPlacement[iIter][jIter] == 1 ||

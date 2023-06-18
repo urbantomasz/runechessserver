@@ -2,7 +2,11 @@ import { Player } from "./Player";
 import { Tile } from "./Tile";
 import { Unit } from "./Unit";
 import { AvailableMoves, Validator } from "./Validator";
-import { MoveUnitResult, StateManager } from "./StateManager";
+import {
+  CaptureUnitResult,
+  MoveUnitResult,
+  StateManager,
+} from "./StateManager";
 import { AvailableCasts, SpellManager } from "./SpellManager";
 import { Color } from "./Enums";
 import { GameObject } from "./GameObject";
@@ -74,7 +78,7 @@ export class Game implements IGame {
   public TryCaptureUnit(
     selectedUnitId: string,
     capturingUnitId: string
-  ): boolean {
+  ): CaptureUnitResult {
     return this._stateManager.TryTakeUnit(
       this.GetGameObjectById(selectedUnitId) as Unit,
       this.GetGameObjectById(capturingUnitId) as Unit
