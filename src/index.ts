@@ -7,7 +7,7 @@ import { Server } from "@colyseus/core";
 import { WebSocketTransport } from "@colyseus/ws-transport";
 import express from "express";
 import { GameRoom } from "./rooms/GameRoom";
-import { LobbyRoom } from "./rooms/GameLobbyRoom";
+import { LobbyRoom } from "./rooms/LobbyRoom";
 import { monitor } from "@colyseus/monitor";
 
 const app = express();

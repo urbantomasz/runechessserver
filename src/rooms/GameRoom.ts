@@ -24,15 +24,16 @@ const dbConnection = require("./../dbConnection");
 
 export class GameRoom extends Room {
   private _game: IGame;
+  private _isGameOver: boolean = false;
   private _bluePlayerName: string = null;
   private _redPlayerName: string = null;
-  private _bluePlayerId: string = null;
-  private _redPlayerId: string = null;
+  private _bluePlayerId: number = null;
+  private _redPlayerId: number = null;
   private _isPlayground: boolean = false;
-  private _lastMoveTimeStamp: number;
-  private _isFirstMove: boolean = true;
   private _redPlayerRemainingTime = 10 * 60 * 1000;
   private _bluePlayerRemainingTime = 10 * 60 * 1000;
+  private _isVersusBot: any;
+  private _idMapping: Map<string, number> = new Map<string, number>();
   /**
    *
    */
@@ -41,51 +42,28 @@ export class GameRoom extends Room {
     this._game = new Game();
   }
 
-  private async updateState() {
-    let currentMoveTimeStamp = Date.now();
+  private updateState() {
     let playerTurnColor = this._game.GetPlayerTurnColor();
-    if (this._isFirstMove) {
-      this._isFirstMove = false;
-    } else {
-      if (playerTurnColor === Color.Blue) {
-        this._bluePlayerRemainingTime =
-          this._bluePlayerRemainingTime -
-          (currentMoveTimeStamp - this._lastMoveTimeStamp);
-      }
 
-      if (playerTurnColor === Color.Red) {
-        this._redPlayerRemainingTime =
-          this._redPlayerRemainingTime -
-          (currentMoveTimeStamp - this._lastMoveTimeStamp);
-      }
+    if (this._game.IsMate()) {
+      this.endGame(playerTurnColor === 0 ? 1 : 0, "Mate");
     }
 
-    this._lastMoveTimeStamp = currentMoveTimeStamp;
+    // if (this._game.Is50MoveRule()) {
+    //   this.endGame(null, "50 Move Rule");
+    // }
 
-    if (
-      this._game.IsMate() ||
-      this._game.Is50MoveRule() ||
-      this._game.IsStaleMate()
-    ) {
-      this.broadcast("GameOver", {
-        winnerColor: playerTurnColor === 0 ? 1 : 0,
-      });
-
-      dbConnection.insertMatch(
-        new Date(Date.now()),
-        this._bluePlayerId,
-        this._redPlayerId,
-        playerTurnColor === 0 ? 1 : 0
-      );
-
-      this.disconnect();
-    } else {
-      if (this._isPlayground && playerTurnColor !== Color.Blue) {
-        setTimeout(() => this.makeBotMove(), 1000);
-      }
-
-      this.broadcast("StateChange", this.getGameStateData());
+    if (this._game.IsStalemate()) {
+      this.endGame(null, "Stalemate");
     }
+
+    if (this._isGameOver) return;
+
+    if (this._isVersusBot && playerTurnColor !== Color.Blue) {
+      setTimeout(() => this.makeBotMove(), 1000);
+    }
+
+    this.broadcast("StateChange", this.getGameStateData());
   }
 
   private getGameStateData(): any {
@@ -132,13 +110,13 @@ export class GameRoom extends Room {
   }
 
   onJoin(client: Client, options?: any, auth?: any): void | Promise<any> {
-    console.log(client.id + " joined to gameroom");
-    console.log(options);
+    this._idMapping.set(client.id, options.playerId);
+
     if (this._bluePlayerId === null) {
-      this._bluePlayerId = client.id;
+      this._bluePlayerId = options.playerId;
       this._bluePlayerName = options.name;
     } else if (this._redPlayerId === null) {
-      this._redPlayerId = client.id;
+      this._redPlayerId = options.playerId;
       this._redPlayerName = options.name;
     }
 
@@ -150,24 +128,34 @@ export class GameRoom extends Room {
       this._redPlayerId !== null
     ) {
       this.broadcast("GameStart");
-    } else if (this._isPlayground) {
-      this._redPlayerId = "easyBot";
+    } else if (this._isVersusBot) {
+      this._redPlayerId = 3;
       this._redPlayerName = "Easy Bot";
+      this.broadcast("GameStart");
+    } else if (this._isPlayground) {
       this.broadcast("GameStart");
     }
   }
 
   onCreate(options: any) {
-    // this.autoDispose = false;
+    if (options.hasOwnProperty("isPlayground")) {
+      this.autoDispose = true;
+    } else {
+      this.autoDispose = false;
+    }
 
     this.maxClients = 2;
 
-    if (options.hasOwnProperty("isPlayground")) {
-      if (options.isPlayground) {
+    if (
+      options.hasOwnProperty("isPlayground") ||
+      options.hasOwnProperty("isVersusBot")
+    ) {
+      if (options.isPlayground || options.isVersusBot) {
         this.maxClients = 1;
         this.setPrivate();
       }
       this._isPlayground = options.isPlayground;
+      this._isVersusBot = options.isVersusBot;
     }
 
     // start the clock ticking
@@ -186,54 +174,18 @@ export class GameRoom extends Room {
     });
   }
 
-  onLeave(client: Client, consented: boolean) {
-    console.log(client.sessionId, "left!");
-    console.log("OnLeave method triggered.");
-
-    let leavingPlayerColor: Color;
-    if (client.id === this._bluePlayerId) {
-      leavingPlayerColor = Color.Blue;
+  async onLeave(client: Client, consented: boolean) {
+    if (!this._isGameOver && !this._isPlayground) {
+      if (consented) {
+        let leavingPlayerId = this._idMapping.get(client.id);
+        let leavingPlayerColor =
+          this._bluePlayerId === leavingPlayerId ? Color.Blue : Color.Red;
+        let winningPlayerColor =
+          leavingPlayerColor === Color.Blue ? Color.Red : Color.Blue;
+        this.endGame(winningPlayerColor, "Player left...");
+      } else {
+      }
     }
-    if (client.id === this._redPlayerId) {
-      leavingPlayerColor = Color.Red;
-    }
-
-    console.log("Leaving Player Color: ", leavingPlayerColor);
-
-    const isGameOver =
-      this._game.IsMate() ||
-      this._game.Is50MoveRule() ||
-      this._game.IsStaleMate();
-
-    console.log("Is Game Over: ", isGameOver);
-
-    // If a player has left and the game is not already over, declare the other player as the winner.
-    if (!isGameOver) {
-      let winnerColor =
-        leavingPlayerColor === Color.Blue ? Color.Red : Color.Blue;
-
-      console.log("Winner Color: ", winnerColor);
-
-      // Broadcasting to all clients about the game over and the winner
-      this.broadcast("GameOver", {
-        winnerColor: winnerColor,
-      });
-
-      // Insert the match result into the database
-      console.log("BluePlayerId: ", this._bluePlayerId);
-      console.log("RedPlayerId: ", this._redPlayerId);
-      dbConnection.insertMatch(
-        new Date(Date.now()),
-        this._bluePlayerId,
-        this._redPlayerId,
-        winnerColor
-      );
-      this.disconnect();
-    }
-  }
-
-  onDispose() {
-    console.log("room", this.roomId, "disposing...");
   }
 
   private tryMoveUnit(data: TryMoveUnitData) {
@@ -330,6 +282,24 @@ export class GameRoom extends Room {
     }
     this.updateState();
   }
+
+  endGame = (winnerColor: number, reason: string) => {
+    this.broadcast("GameOver", {
+      winnerColor,
+      reason,
+    });
+
+    dbConnection.insertMatch(
+      new Date(Date.now()),
+      this._bluePlayerId,
+      this._redPlayerId,
+      winnerColor === Color.Blue ? true : false
+    );
+
+    this._isGameOver = true; // set game over flag to true
+
+    this.disconnect();
+  };
 }
 
 export interface TryMoveUnitData {

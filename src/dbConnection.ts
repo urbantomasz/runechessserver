@@ -81,50 +81,34 @@ class DBConnection {
       request.input("Name", mssql.VarChar, name);
 
       const query = `
-          IF NOT EXISTS (SELECT 1 FROM Players WHERE GoogleId = @GoogleId)
-          BEGIN
-            INSERT INTO Players (GoogleId, Nickname, Name)
-            VALUES (@GoogleId, @Nickname, @Name);
-          END
-        `;
+      MERGE Players AS target 
+      USING (SELECT @GoogleId, @Nickname, @Name) AS source (GoogleId, Nickname, Name) 
+      ON (target.GoogleId = source.GoogleId) 
+      WHEN MATCHED THEN 
+        UPDATE SET Nickname = source.Nickname, Name = source.Name 
+      WHEN NOT MATCHED THEN 
+        INSERT (GoogleId, Nickname, Name) 
+        VALUES (source.GoogleId, source.Nickname, source.Name)
+      OUTPUT inserted.Id;
+    `;
 
-      await request.query(query);
-      console.log("Player record inserted if not found");
+      const result = await request.query(query);
+      return result.recordset[0].Id;
     } catch (error) {
       console.log(error);
+      return null;
     }
   }
 
   async insertMatch(
     date: Date,
-    bluePlayerGoogleId: string,
-    redPlayerGoogleId: string,
+    bluePlayerId: number,
+    redPlayerId: number,
     result: boolean
   ) {
     try {
       const connection = await this.getConnection();
       const request = new mssql.Request(connection);
-
-      // Fetch Ids from Players table for both blue and red players
-      const bluePlayerQuery = `SELECT Id FROM Players WHERE GoogleId = @bluePlayerGoogleId`;
-      const redPlayerQuery = `SELECT Id FROM Players WHERE GoogleId = @redPlayerGoogleId`;
-
-      request.input("bluePlayerGoogleId", mssql.NVarChar, bluePlayerGoogleId);
-      request.input("redPlayerGoogleId", mssql.NVarChar, redPlayerGoogleId);
-
-      const bluePlayerResult = await request.query(bluePlayerQuery);
-      const redPlayerResult = await request.query(redPlayerQuery);
-
-      if (
-        bluePlayerResult.recordset.length === 0 ||
-        redPlayerResult.recordset.length === 0
-      ) {
-        console.error("One or both player Ids not found");
-        return;
-      }
-
-      const bluePlayerId = bluePlayerResult.recordset[0].Id;
-      const redPlayerId = redPlayerResult.recordset[0].Id;
 
       // Now insert into Matches
       request.input("date", mssql.Date, date);

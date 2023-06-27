@@ -60,18 +60,18 @@ export class Validator {
   }
 
   public UpdateUnitsAvailableMoves(): void {
-    console.time("updateUnitsAvailableMoves");
+    //console.time("updateUnitsAvailableMoves");
     this._unitsAvailableMoves = this.GetUnitsAvailableMoves(
       this._units,
       this._tiles
     );
     this._isCheck = this.checkIfCheck();
-    console.time("isMate");
+    //console.time("isMate");
     this._isMate = this.checkIfMate();
-    console.timeEnd("isMate");
-    console.log("Is Move Check? " + this._isCheck);
-    console.log("Is Move Mate? " + this._isMate);
-    console.timeEnd("updateUnitsAvailableMoves");
+    //console.timeEnd("isMate");
+    //console.log("Is Move Check? " + this._isCheck);
+    //console.log("Is Move Mate? " + this._isMate);
+    //console.timeEnd("updateUnitsAvailableMoves");
   }
 
   private checkIfMate(): boolean {

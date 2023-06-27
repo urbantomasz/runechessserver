@@ -5,16 +5,16 @@ import { GameObject } from "./GameObject";
 import { Move } from "./Move";
 import { SpellManager } from "./SpellManager";
 import { Tile } from "./Tile";
-import { DarkKnight, King, Knight, Peasant, Princess, Unit } from "./Unit";
+import { Princess, Unit } from "./Unit";
 import { Validator } from "./Validator";
 import {
   CaptureCommand,
-  ICommand,
   TargetCommand,
   MoveCommand,
   SpellCommand,
   TurnFinishedCommand,
 } from "./Commands";
+import { GameSettings } from "./GameSettings";
 
 export class StateManager {
   private _validator: Validator;
@@ -23,18 +23,20 @@ export class StateManager {
   private _units: Unit[];
   private _playerTurnColor: Color;
   private _commands: TargetCommand[] = [];
-
+  private readonly _settings: GameSettings;
   constructor(
     units: Unit[],
     tiles: Tile[][],
     validator: Validator,
-    spellManager: SpellManager
+    spellManager: SpellManager,
+    settings: GameSettings
   ) {
     this._units = units;
     this._tiles = tiles;
     this._validator = validator;
     this._spellManager = spellManager;
     this._playerTurnColor = Color.Blue;
+    this._settings = settings;
   }
 
   public get Tiles() {
@@ -91,9 +93,15 @@ export class StateManager {
       !this._spellManager.UnitsAvailableCasts.get(castingUnit).Targets.includes(
         targetObject
       )
-    )
+    ) {
       return false;
-    if (this._playerTurnColor !== castingUnit.color) return false;
+    }
+
+    if (this._settings.validatePlayerColor) {
+      if (this._playerTurnColor !== castingUnit.color) {
+        return false;
+      }
+    }
 
     var spellCommand = new SpellCommand(
       castingUnit,
@@ -104,13 +112,22 @@ export class StateManager {
     spellCommand.Execute();
 
     this.FinishTurnCommand(spellCommand).Execute();
+
     return true;
   }
 
   public TryMoveUnit(unit: Unit, tile: Tile): MoveUnitResult {
-    if (!this._validator.UnitsAvailableMoves.get(unit).Tiles.includes(tile))
-      return;
-    if (this._playerTurnColor !== unit.color) return;
+    if (this._settings.validateMoves) {
+      if (!this._validator.UnitsAvailableMoves.get(unit).Tiles.includes(tile)) {
+        return;
+      }
+    }
+
+    if (this._settings.validatePlayerColor) {
+      if (this._playerTurnColor !== unit.color) {
+        return;
+      }
+    }
 
     let moveCommand = new MoveCommand(unit, tile, this._units);
 
@@ -129,18 +146,22 @@ export class StateManager {
     selectedUnit: Unit,
     capturingUnit: Unit
   ): CaptureUnitResult {
-    console.log(selectedUnit.id);
-    console.log(capturingUnit.id);
-    console.log(
-      this._tiles[capturingUnit.row][capturingUnit.column].lastCapturedUnit
-    );
-    if (
-      !this._validator.UnitsAvailableMoves.get(selectedUnit).Units.includes(
-        capturingUnit
-      )
-    )
-      return;
-    if (this._playerTurnColor !== selectedUnit.color) return;
+    if (this._settings.validateMoves) {
+      if (
+        !this._validator.UnitsAvailableMoves.get(selectedUnit).Units.includes(
+          capturingUnit
+        )
+      ) {
+        return;
+      }
+    }
+
+    if (this._settings.validatePlayerColor) {
+      if (this._playerTurnColor !== selectedUnit.color) {
+        return;
+      }
+    }
+
     if (capturingUnit instanceof Princess) return;
 
     var captureCommand = new CaptureCommand(
@@ -151,6 +172,7 @@ export class StateManager {
     );
 
     captureCommand.Execute();
+
     this.FinishTurnCommand(captureCommand).Execute();
 
     return {

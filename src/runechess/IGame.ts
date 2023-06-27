@@ -19,7 +19,7 @@ export interface IGame {
   Moves: Move[];
   IsMate(): boolean;
   IsCheck(): boolean;
-  IsStaleMate(): boolean;
+  IsStalemate(): boolean;
   Is50MoveRule(): boolean;
   GetPlayerTurnColor: () => Color;
   GetGameObjectById: (objectId: string) => GameObject;

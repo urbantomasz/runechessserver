@@ -15,6 +15,7 @@ import { Move } from "./Move";
 import { ISpell } from "./Spell";
 import { Bot, BotMove } from "./Bot";
 import { ICommand } from "./Commands";
+import { GameSettings, defaultSettings } from "./GameSettings";
 //todo move some subclasses to game maybe as interfaces or abstract classes
 export class Game implements IGame {
   public static BOARD_ROWS = 8;
@@ -24,8 +25,10 @@ export class Game implements IGame {
   private readonly _stateManager: StateManager;
   private readonly _spellManager: SpellManager;
   private readonly _bot: Bot;
+  private readonly _settings: GameSettings;
 
-  constructor() {
+  constructor(settings?: Partial<GameSettings>) {
+    this._settings = { ...defaultSettings, ...settings };
     this._players = [new Player(Color.Blue), new Player(Color.Red)];
     let tiles = this.initializeTiles();
     let units = this.initializeUnits();
@@ -35,9 +38,12 @@ export class Game implements IGame {
       units,
       tiles,
       this._validator,
-      this._spellManager
+      this._spellManager,
+      this._settings
     );
-    this._bot = new Bot(this._stateManager);
+    if (this._settings.enableBot) {
+      this._bot = new Bot(this._stateManager);
+    }
   }
 
   public GetAllPossibleMoves(): ICommand[] {
@@ -52,7 +58,7 @@ export class Game implements IGame {
     return this._stateManager.IsMate;
   }
 
-  public IsStaleMate(): boolean {
+  public IsStalemate(): boolean {
     return this._stateManager.IsStaleMate;
   }
 

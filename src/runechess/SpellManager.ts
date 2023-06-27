@@ -111,7 +111,7 @@ export class SpellManager {
   }
 
   public UpdateUnitsAvailableCasts(omitCheck: boolean = false): void {
-    console.time("updateUnitsAvailableCasts");
+    //console.time("updateUnitsAvailableCasts");
     this._unitsAvailableCasts = new Map<Unit, AvailableCasts>();
     this._units.forEach((unit) => {
       if (unit.usedSpell || unit.isCaptured || !this._spells.has(unit)) {
@@ -128,11 +128,11 @@ export class SpellManager {
         //console.timeEnd("spell: " + unit.constructor.name);
       }
     });
-    console.timeEnd("updateUnitsAvailableCasts");
+    //console.timeEnd("updateUnitsAvailableCasts");
     this.checkIfSpellCheck();
     this.checkIfSpellMate();
-    console.log("Is Spell Check? " + this._isSpellCheck);
-    console.log("Is Spell Mate? " + this._isSpellMate);
+    //console.log("Is Spell Check? " + this._isSpellCheck);
+    //console.log("Is Spell Mate? " + this._isSpellMate);
   }
 
   private checkIfSpellMate(): void {
@@ -519,6 +519,25 @@ export class SpellManager {
         rogueAdjacentTilesMap.set(firstUnitDown, adjacentTileDown);
         rogueAdjacentsTiles.push(firstUnitDown);
       }
+    }
+
+    // Remove enemy princess from targets if found
+    if (
+      rogueAdjacentsTiles.some(
+        (x) => x instanceof Princess && x.color !== castingUnit.color
+      )
+    ) {
+      let princessUnit = rogueAdjacentsTiles.find(
+        (x) => x instanceof Princess && x.color !== castingUnit.color
+      );
+
+      // Remove princessUnit from rogueAdjacentsTiles
+      rogueAdjacentsTiles = rogueAdjacentsTiles.filter(
+        (x) => x !== princessUnit
+      );
+
+      // Remove princessUnit from rogueAdjacentTilesMap
+      rogueAdjacentTilesMap.delete(princessUnit);
     }
 
     return {
