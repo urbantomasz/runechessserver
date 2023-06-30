@@ -7,14 +7,22 @@ export class PlayerSchema extends Schema {
   playerId: number;
   @type("string")
   googleId: string;
+  @type("string")
+  sessionId: string;
   /**
    *
    */
-  constructor(name: string, playerId: number, googleId: string) {
+  constructor(
+    name: string,
+    playerId: number,
+    googleId: string,
+    sessionId: string
+  ) {
     super();
     this.name = name;
     this.playerId = playerId;
     this.googleId = googleId;
+    this.sessionId = sessionId;
   }
 }
 

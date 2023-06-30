@@ -23,6 +23,18 @@ export class LobbyRoom extends Room<LobbyRoomSchema> {
       client.send("PlaygroundReservation", reservation);
     });
 
+    this.onMessage("ChallengePlayer", async (client, data) => {
+      var challengeClient = this.clients.find(
+        (c) => c.sessionId === data.sessionId
+      );
+      challengeClient.send("ChallengePlayer", client.id);
+    });
+
+    this.onMessage("ChallengePlayerAccepted", async (client, clientId) => {
+      var challengeClient = this.clients.find((c) => c.id === clientId);
+      this.createGame(challengeClient, client);
+    });
+
     this.onMessage("RequestGameVersusBot", async (client, data) => {
       this.removeClientFromQueue(client);
       let playgroundRoom = await matchMaker.createRoom("GameRoom", {
@@ -62,26 +74,38 @@ export class LobbyRoom extends Room<LobbyRoomSchema> {
         clientBlue.send("RemovedFromQueue");
         clientRed.send("RemovedFromQueue");
 
-        let gameRoom = await matchMaker.createRoom("GameRoom", {
-          isPlayground: false,
-        });
-        let blueReservation = await matchMaker.reserveSeatFor(
-          await gameRoom,
-          clientBlue
-        );
-        let redReservation = await matchMaker.reserveSeatFor(
-          await gameRoom,
-          clientRed
-        );
-        clientBlue.send("SeatReservation", {
-          reservation: blueReservation,
-          color: Color.Blue,
-        });
-        clientRed.send("SeatReservation", {
-          reservation: redReservation,
-          color: Color.Red,
-        });
+        await this.createGame(clientBlue, clientRed);
       }
+    }
+  }
+
+  async createGame(clientBlue: Client, clientRed: Client) {
+    try {
+      const gameRoom = await matchMaker.createRoom("GameRoom", {
+        isPlayground: false,
+      });
+
+      const blueReservation = await matchMaker.reserveSeatFor(
+        gameRoom,
+        clientBlue
+      );
+      const redReservation = await matchMaker.reserveSeatFor(
+        gameRoom,
+        clientRed
+      );
+
+      clientBlue.send("SeatReservation", {
+        reservation: blueReservation,
+        color: Color.Blue,
+      });
+
+      clientRed.send("SeatReservation", {
+        reservation: redReservation,
+        color: Color.Red,
+      });
+    } catch (error) {
+      console.log("Error occurred during game creation: ", error);
+      throw error;
     }
   }
 
@@ -96,7 +120,7 @@ export class LobbyRoom extends Room<LobbyRoomSchema> {
 
     this.state.players.set(
       client.id,
-      new PlayerSchema(options.name, playerId, options.sub)
+      new PlayerSchema(options.name, playerId, options.sub, client.sessionId)
     );
 
     // Check if this user has an ongoing game
