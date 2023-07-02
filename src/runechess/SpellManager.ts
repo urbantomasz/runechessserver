@@ -158,12 +158,14 @@ export class SpellManager {
         unitSpell instanceof Shadowstep &&
         availableCasts.Targets.find((u) => u instanceof Princess)
       ) {
+        console.log(unit.id + " is checking princess by Shadowstep");
         isSpellCheck = true;
       }
       if (unitSpell instanceof PowerStomp) {
         for (let [_, unitTileMap] of unitSpell._tilesBehindMap) {
           let unitTile = [...unitTileMap][0];
           if (unitTile[0] instanceof Princess && unitTile[1].isDestroyed) {
+            console.log(unit.id + " is checking princess by PowerStomp");
             isSpellCheck = true;
           }
         }

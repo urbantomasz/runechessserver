@@ -8,6 +8,7 @@ export class LobbyRoom extends Room<LobbyRoomSchema> {
   evaluateGroupsInterval = 2000;
   playersSearching = new Array<Client>();
   ongoingGames = new Map<number, string>();
+  connectedGoogleIds = new Set<string>();
   constructor() {
     super();
     this.setState(new LobbyRoomSchema());
@@ -24,14 +25,17 @@ export class LobbyRoom extends Room<LobbyRoomSchema> {
     });
 
     this.onMessage("ChallengePlayer", async (client, data) => {
+      console.log("ChallengePlayerMessage:");
+      console.log(data);
       var challengeClient = this.clients.find(
         (c) => c.sessionId === data.sessionId
       );
-      challengeClient.send("ChallengePlayer", client.id);
+      console.log(challengeClient);
+      challengeClient.send("ChallengePlayer", client.sessionId);
     });
 
-    this.onMessage("ChallengePlayerAccepted", async (client, clientId) => {
-      var challengeClient = this.clients.find((c) => c.id === clientId);
+    this.onMessage("ChallengePlayerAccepted", async (client, sessionId) => {
+      var challengeClient = this.clients.find((c) => c.sessionId === sessionId);
       this.createGame(challengeClient, client);
     });
 
@@ -40,11 +44,11 @@ export class LobbyRoom extends Room<LobbyRoomSchema> {
       let playgroundRoom = await matchMaker.createRoom("GameRoom", {
         isVersusBot: true,
       });
-      let playerId = this.state.players.get(client.id).playerId;
+      let playerId = this.state.players.get(client.sessionId).playerId;
       this.ongoingGames.set(playerId, playgroundRoom.roomId);
       let reservation = await matchMaker.reserveSeatFor(
         playgroundRoom,
-        this.state.players.get(client.id)
+        this.state.players.get(client.sessionId)
       );
 
       client.send("PlaygroundReservation", reservation);
@@ -110,17 +114,25 @@ export class LobbyRoom extends Room<LobbyRoomSchema> {
   }
 
   async onJoin(client: Client, options: any) {
-    console.log(client.id + " joined lobby room.");
+    var googleId = options.sub;
+    var playerName = options.name;
+
+    if (this.connectedGoogleIds.has(googleId)) {
+      client.error(0, "User already logged in.");
+      return;
+    } else {
+      this.connectedGoogleIds.add(googleId);
+    }
 
     const playerId = await dbConnection.insertPlayerIfNotFound(
-      options.sub,
-      options.name,
-      options.name
+      googleId,
+      playerName,
+      playerName
     );
 
     this.state.players.set(
-      client.id,
-      new PlayerSchema(options.name, playerId, options.sub, client.sessionId)
+      client.sessionId,
+      new PlayerSchema(playerName, playerId, googleId, client.sessionId)
     );
 
     // Check if this user has an ongoing game
@@ -143,8 +155,10 @@ export class LobbyRoom extends Room<LobbyRoomSchema> {
 
   onLeave(client: Client, consented: boolean) {
     this.removeClientFromQueue(client);
-    this.state.players.delete(client.id);
-    console.log(client.id + " leaved lobby room");
+    this.connectedGoogleIds.delete(
+      this.state.players[client.sessionId].googleId
+    );
+    this.state.players.delete(client.sessionId);
   }
 
   onDispose() {

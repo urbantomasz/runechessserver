@@ -99,6 +99,7 @@ export class Validator {
     let isCheck = false;
     for (const [unit, move] of this._unitsAvailableMoves) {
       if (move.Units.findIndex((u) => u instanceof Princess) >= 0) {
+        console.log("move check:" + unit.id + " is checking princess");
         isCheck = true;
         break;
       }
