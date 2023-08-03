@@ -183,7 +183,9 @@ export class StateManager {
     };
   }
 
-  public FinishTurnCommand(command: TargetCommand | null = null) {
+  public FinishTurnCommand(
+    command: TargetCommand | null = null
+  ): TurnFinishedCommand {
     if (command !== null) {
       this._commands.push(command);
     }

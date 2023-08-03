@@ -80,7 +80,7 @@ class DBConnection {
       request.input("Nickname", mssql.VarChar, nickname);
       request.input("Name", mssql.VarChar, name);
 
-      const query = `
+      let query = `
       MERGE Players AS target 
       USING (SELECT @GoogleId, @Nickname, @Name) AS source (GoogleId, Nickname, Name) 
       ON (target.GoogleId = source.GoogleId) 
@@ -90,10 +90,27 @@ class DBConnection {
         INSERT (GoogleId, Nickname, Name) 
         VALUES (source.GoogleId, source.Nickname, source.Name)
       OUTPUT inserted.Id;
-    `;
+      `;
 
       const result = await request.query(query);
-      return result.recordset[0].Id;
+      const id = result.recordset[0].Id;
+
+      // If the player was inserted, update the nickname and name
+      if (id) {
+        request.input("Id", mssql.Int, id);
+        request.input("UpdatedNickname", mssql.VarChar, "RunechessPlayer" + id);
+        request.input("UpdatedName", mssql.VarChar, "RunechessPlayer" + id);
+
+        query = `
+          UPDATE Players 
+          SET Nickname = @UpdatedNickname, Name = @UpdatedName 
+          WHERE Id = @Id;
+        `;
+
+        await request.query(query);
+      }
+
+      return id;
     } catch (error) {
       console.log(error);
       return null;

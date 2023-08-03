@@ -115,14 +115,20 @@ export class SpellManager {
     this._unitsAvailableCasts = new Map<Unit, AvailableCasts>();
     this._units.forEach((unit) => {
       if (unit.usedSpell || unit.isCaptured || !this._spells.has(unit)) {
+        // set empty targets for units without spells
         this._unitsAvailableCasts.set(unit, { Targets: [] });
       } else {
         //console.time("spell: " + unit.constructor.name);
         let unitValidTargets = {
+          // get targets for spells
           Targets: this._spells.get(unit).GetValidTargets(unit, this),
         };
         if (!omitCheck) {
-          this.FilterUnitCastsThatWouldResultInCheck(unit, unitValidTargets);
+          // remove spells that would result in your princess check/mate
+          this.FilterUnitCastsThatWouldResultInOwnColorPrincessCheck(
+            unit,
+            unitValidTargets
+          );
         }
         this._unitsAvailableCasts.set(unit, unitValidTargets);
         //console.timeEnd("spell: " + unit.constructor.name);
@@ -174,7 +180,7 @@ export class SpellManager {
     this._isSpellCheck = isSpellCheck;
   }
 
-  FilterUnitCastsThatWouldResultInCheck(
+  FilterUnitCastsThatWouldResultInOwnColorPrincessCheck(
     castingUnit: Unit,
     unitsAvailableCasts: AvailableCasts
   ): void {
