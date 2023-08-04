@@ -25,6 +25,7 @@ jobs:
         run: |
           npm install
           npm run build --if-present
+          npm run test --if-present
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v2
@@ -51,5 +52,5 @@ jobs:
         with:
           app-name: 'RunechessServer'
           slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_5B7293966B7D4A5494CC508B7344939C }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_79DE695DA5934FFAAF85E8F414F10A2B }}
           package: .
