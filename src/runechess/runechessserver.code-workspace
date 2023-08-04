@@ -1,13 +1,10 @@
 {
-	"folders": [
-		{
-			"path": "../.."
-		},
-		{
-			"path": "../../../runechesswebapp"
-		},
-		{
-			"path": "../../../runechessshared"
-		}
-	]
+  "folders": [
+    {
+      "path": "../.."
+    },
+    {
+      "path": "../../../runechesswebapp"
+    }
+  ]
 }

@@ -11,7 +11,7 @@ import {
   TileDTO,
   AvailableMovesDTO,
   AvailableCastsDTO,
-} from "../../../runechessshared/DTOs";
+} from "../runechess/DTOs";
 import { AvailableMoves } from "../runechess/Validator";
 import { AvailableCasts } from "../runechess/SpellManager";
 import {
