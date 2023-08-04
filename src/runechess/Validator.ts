@@ -66,8 +66,14 @@ export class Validator {
       this._tiles
     );
     this._isCheck = this.checkIfCheck();
+    if (this._isCheck) {
+      console.log("is validator check");
+    }
     //console.time("isMate");
     this._isMate = this.checkIfMate();
+    if (this._isMate) {
+      console.log("is validator mate");
+    }
     //console.timeEnd("isMate");
     //console.log("Is Move Check? " + this._isCheck);
     //console.log("Is Move Mate? " + this._isMate);

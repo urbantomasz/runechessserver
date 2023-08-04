@@ -21,6 +21,7 @@ export interface IGame {
   IsCheck(): boolean;
   IsStalemate(): boolean;
   Is50MoveRule(): boolean;
+  IsInsufficientMaterial(): boolean;
   GetPlayerTurnColor: () => Color;
   GetGameObjectById: (objectId: string) => GameObject;
   GetAllPossibleMoves(): ICommand[];

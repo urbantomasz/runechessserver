@@ -1,6 +1,6 @@
 import { Player } from "./Player";
 import { Tile } from "./Tile";
-import { Unit } from "./Unit";
+import { Princess, Unit } from "./Unit";
 import { AvailableMoves, Validator } from "./Validator";
 import {
   CaptureUnitResult,
@@ -64,6 +64,12 @@ export class Game implements IGame {
 
   public Is50MoveRule(): boolean {
     return this._stateManager.Is50MoveRule;
+  }
+
+  public IsInsufficientMaterial(): boolean {
+    return this._stateManager.Units.filter((u) => !u.isCaptured).every(
+      (u) => u instanceof Princess
+    );
   }
 
   public GetBestMove(depth: number): BotMove {

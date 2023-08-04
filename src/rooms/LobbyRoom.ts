@@ -130,6 +130,8 @@ export class LobbyRoom extends Room<LobbyRoomSchema> {
       playerName
     );
 
+    playerName = "RunechessPlayer" + playerId;
+
     this.state.players.set(
       client.sessionId,
       new PlayerSchema(playerName, playerId, googleId, client.sessionId)

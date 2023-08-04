@@ -153,6 +153,9 @@ export class SpellManager {
       }
     }
     this._isSpellMate = bluePlayerMoves === 0 || redPlayersMoves === 0;
+    if (this._isSpellMate) {
+      console.log("is spell mate");
+    }
   }
 
   private checkIfSpellCheck(): void {
@@ -162,7 +165,9 @@ export class SpellManager {
       const unitSpell = this._spells.get(unit);
       if (
         unitSpell instanceof Shadowstep &&
-        availableCasts.Targets.find((u) => u instanceof Princess)
+        availableCasts.Targets.find(
+          (u) => u instanceof Princess && u.color !== unit.color
+        )
       ) {
         console.log(unit.id + " is checking princess by Shadowstep");
         isSpellCheck = true;

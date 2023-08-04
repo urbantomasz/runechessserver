@@ -70,7 +70,14 @@ export class StateManager {
   }
 
   public get Is50MoveRule(): boolean {
-    return this._commands.length >= 500;
+    if (this._commands.length < 50) return false;
+
+    // Check the last 50 moves for a capture
+    for (let i = this._commands.length - 50; i < this._commands.length; i++) {
+      if (this._commands[i] instanceof CaptureCommand) return false; // or check some other condition
+    }
+
+    return true;
   }
 
   public GetUnitById(id: string): Unit {

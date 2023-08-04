@@ -49,18 +49,26 @@ export class GameRoom extends Room {
       this.endGame(playerTurnColor === 0 ? 1 : 0, "Mate");
     }
 
-    // if (this._game.Is50MoveRule()) {
-    //   this.endGame(null, "50 Move Rule");
-    // }
-
     if (this._game.IsStalemate()) {
       this.endGame(null, "Stalemate");
+    }
+
+    if (this._game.Is50MoveRule()) {
+      this.endGame(null, "50 Move Rule");
+    }
+
+    if (this._game.IsInsufficientMaterial()) {
+      this.endGame(null, "Insufficient Material");
     }
 
     if (this._isGameOver) return;
 
     if (this._isVersusBot && playerTurnColor !== Color.Blue) {
-      setTimeout(() => this.makeBotMove(), 1000);
+      setTimeout(() => this.makeBotMove(), 100);
+    }
+
+    if (this._isVersusBot && playerTurnColor !== Color.Red) {
+      setTimeout(() => this.makeBotMove(), 100);
     }
 
     this.broadcast("StateChange", this.getGameStateData());
@@ -89,23 +97,26 @@ export class GameRoom extends Room {
 
   private makeBotMove() {
     const bestMove = this._game.GetBestMove(0);
-    if (bestMove.Command instanceof MoveCommand) {
-      this.tryMoveUnit({
-        selectedUnit: bestMove.UnitId,
-        tile: bestMove.TargetId,
-      });
-    }
-    if (bestMove.Command instanceof CaptureCommand) {
-      this.tryCaptureUnit({
-        selectedUnit: bestMove.UnitId,
-        capturingUnit: bestMove.TargetId,
-      });
-    }
-    if (bestMove.Command instanceof SpellCommand) {
-      this.tryCastingSpell({
-        castingUnit: bestMove.UnitId,
-        targetingObject: bestMove.TargetId,
-      });
+
+    if (bestMove !== undefined) {
+      if (bestMove.Command instanceof MoveCommand) {
+        this.tryMoveUnit({
+          selectedUnit: bestMove.UnitId,
+          tile: bestMove.TargetId,
+        });
+      }
+      if (bestMove.Command instanceof CaptureCommand) {
+        this.tryCaptureUnit({
+          selectedUnit: bestMove.UnitId,
+          capturingUnit: bestMove.TargetId,
+        });
+      }
+      if (bestMove.Command instanceof SpellCommand) {
+        this.tryCastingSpell({
+          castingUnit: bestMove.UnitId,
+          targetingObject: bestMove.TargetId,
+        });
+      }
     }
   }
 

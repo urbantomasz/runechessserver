@@ -16,7 +16,6 @@ export interface ICommand {
 export abstract class TargetCommand implements ICommand {
   readonly UnitId: string;
   readonly TargetId: string;
-
   constructor(unit: Unit, target: GameObject) {
     this.UnitId = unit.id;
     this.TargetId = target.id;
