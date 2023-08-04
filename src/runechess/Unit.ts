@@ -6,8 +6,6 @@ import { Tile } from "./Tile";
 export abstract class Unit extends GameObject{
     color: Color;
     name: string;
-    row: number;
-    column: number;
     protected  _movePattern: number[][];
     public get movePattern(): number[][] {
         return this._movePattern;
@@ -30,6 +28,10 @@ export abstract class Unit extends GameObject{
         this.isCaptured = false;
         this.usedSpell = false;
     }
+
+    public toNotationString(): string{
+        return this.constructor.name[0].toUpperCase();
+    }
 }
 
 export class Princess extends Unit {
@@ -45,7 +47,7 @@ export class Princess extends Unit {
 }
 
 export class Peasant extends Unit {
-
+    
 
     constructor(unitColor: Color, startAt: Tile) {
         let movePattern  = [
@@ -154,9 +156,9 @@ export class Knight extends Unit {
 export class Rogue extends Unit {
     constructor(unitColor: Color, startAt: Tile) {
         let movePattern = [
-            [1, 0, 1],
-            [0, 1, 0],
-            [1, 0, 1]
+            [Infinity, 0, Infinity],
+            [0, 0, 0],
+            [Infinity, 0, Infinity]
         ]
         
         super(unitColor, startAt, movePattern);

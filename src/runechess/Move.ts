@@ -1,26 +1,26 @@
-import { Tile } from "./Tile";
+import { GameObject } from "./GameObject";
 import { Unit } from "./Unit";
 
 export class Move {
-    startAt: Tile;
-    endAt: Tile;
     unit: Unit;
-    capturedUnit: Unit | null;
-    isComplete: boolean;
+    target: GameObject;
+    castedSpell: boolean;
 
-
-    completeMove(tile: Tile, capturedUnit: Unit): Move {
-        this.isComplete = true;
-        this.capturedUnit = capturedUnit;
-        this.endAt = tile;
-        return this;
+    private toStringMove(): string{
+        return this.unit.toNotationString() + this.target.toNotationString();
     }
 
-    constructor(tile: Tile, unit: Unit) {
-        this.isComplete = false;
-        this.capturedUnit = null;
+    private toStringCast(): string{
+        return "*" + this.toStringMove();
+    }
+
+    public toNotationString(): string{
+        return this.castedSpell ? this.toStringCast() : this.toStringMove();
+    }
+
+    constructor(unit: Unit, target: GameObject, castedSpell: boolean = false) {
         this.unit = unit;
-        this.startAt = tile;
+        this.target = target;
+        this.castedSpell = castedSpell;
     }
-
 }
