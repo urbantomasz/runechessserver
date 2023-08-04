@@ -64,12 +64,12 @@ export class GameRoom extends Room {
     if (this._isGameOver) return;
 
     if (this._isVersusBot && playerTurnColor !== Color.Blue) {
-      setTimeout(() => this.makeBotMove(), 100);
+      setTimeout(() => this.makeBotMove(), 1000);
     }
 
-    if (this._isVersusBot && playerTurnColor !== Color.Red) {
-      setTimeout(() => this.makeBotMove(), 100);
-    }
+    // if (this._isVersusBot && playerTurnColor !== Color.Red) {
+    //   setTimeout(() => this.makeBotMove(), 100);
+    // }
 
     this.broadcast("StateChange", this.getGameStateData());
   }
