@@ -7,6 +7,9 @@ const ORIGIN =
     ? "https://brave-meadow-0fbc22b03.3.azurestaticapps.net"
     : "http://localhost:4200";
 
+console.log("Environment:", process.env.NODE_ENV);
+console.log("CORS Origin:", ORIGIN);
+
 import { createServer } from "http";
 import { Server } from "@colyseus/core";
 import { WebSocketTransport } from "@colyseus/ws-transport";
