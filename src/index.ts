@@ -14,6 +14,7 @@ import express from "express";
 import { GameRoom } from "./rooms/GameRoom";
 import { LobbyRoom } from "./rooms/LobbyRoom";
 import { monitor } from "@colyseus/monitor";
+import { Request, Response } from "express";
 
 const app = express();
 const cors = require("cors");
@@ -26,11 +27,11 @@ app.use(
     origin: ORIGIN,
   })
 );
-app.get("/", function (req, res) {
+app.get("/", function (req: Request, res: Response) {
   res.send("200 OK - Dino Fun Land");
 });
 
-app.get("/api/matches", async (req, res) => {
+app.get("/api/matches", async (req: Request, res: Response) => {
   try {
     const matches = await dbConnection.getMatches();
     res.json(matches);
@@ -40,7 +41,7 @@ app.get("/api/matches", async (req, res) => {
   }
 });
 
-app.get("/api/ranking", async (req, res) => {
+app.get("/api/ranking", async (req: Request, res: Response) => {
   try {
     const ranking = await dbConnection.getRanking();
     res.json(ranking);
