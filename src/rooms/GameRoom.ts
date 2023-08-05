@@ -43,35 +43,39 @@ export class GameRoom extends Room {
   }
 
   private updateState() {
-    let playerTurnColor = this._game.GetPlayerTurnColor();
+    try {
+      let playerTurnColor = this._game.GetPlayerTurnColor();
 
-    if (this._game.IsMate()) {
-      this.endGame(playerTurnColor === 0 ? 1 : 0, "Mate");
+      if (this._game.IsMate()) {
+        this.endGame(playerTurnColor === 0 ? 1 : 0, "Mate");
+      }
+
+      if (this._game.IsStalemate()) {
+        this.endGame(null, "Stalemate");
+      }
+
+      if (this._game.Is50MoveRule()) {
+        this.endGame(null, "50 Move Rule");
+      }
+
+      if (this._game.IsInsufficientMaterial()) {
+        this.endGame(null, "Insufficient Material");
+      }
+
+      if (this._isGameOver) return;
+
+      if (this._isVersusBot && playerTurnColor !== Color.Blue) {
+        setTimeout(() => this.makeBotMove(), 1000);
+      }
+
+      // if (this._isVersusBot && playerTurnColor !== Color.Red) {
+      //   setTimeout(() => this.makeBotMove(), 100);
+      // }
+
+      this.broadcast("StateChange", this.getGameStateData());
+    } catch {
+      this.endGame(null, "Match has been cancelled. (Server Internal Error)");
     }
-
-    if (this._game.IsStalemate()) {
-      this.endGame(null, "Stalemate");
-    }
-
-    if (this._game.Is50MoveRule()) {
-      this.endGame(null, "50 Move Rule");
-    }
-
-    if (this._game.IsInsufficientMaterial()) {
-      this.endGame(null, "Insufficient Material");
-    }
-
-    if (this._isGameOver) return;
-
-    if (this._isVersusBot && playerTurnColor !== Color.Blue) {
-      setTimeout(() => this.makeBotMove(), 1000);
-    }
-
-    // if (this._isVersusBot && playerTurnColor !== Color.Red) {
-    //   setTimeout(() => this.makeBotMove(), 100);
-    // }
-
-    this.broadcast("StateChange", this.getGameStateData());
   }
 
   private getGameStateData(): any {
@@ -92,6 +96,7 @@ export class GameRoom extends Room {
       BluePlayerName: this._bluePlayerName,
       RedPlayerName: this._redPlayerName,
       PlayerTurnColor: this._game.GetPlayerTurnColor(),
+      IsPlayground: this._isPlayground,
     };
   }
 
@@ -173,14 +178,48 @@ export class GameRoom extends Room {
     this.clock.start();
 
     this.onMessage("TryMoveUnit", (client, data: TryMoveUnitData) => {
+      // if (
+      //   !this._isPlayground &&
+      //   !(
+      //     this._idMapping[client.id] ===
+      //     (this._game.GetPlayerTurnColor() === Color.Blue
+      //       ? this._bluePlayerId
+      //       : this._redPlayerId)
+      //   )
+      // ) {
+      //   return;
+      // }
+
       this.tryMoveUnit(data);
     });
 
     this.onMessage("TryCaptureUnit", (client, data: TryCaptureUnitData) => {
+      //   if (
+      //     !this._isPlayground &&
+      //     !(
+      //       this._idMapping[client.id] ===
+      //       (this._game.GetPlayerTurnColor() === Color.Blue
+      //         ? this._bluePlayerId
+      //         : this._redPlayerId)
+      //     )
+      //   ) {
+      //     return;
+      //   }
       this.tryCaptureUnit(data);
     });
 
     this.onMessage("TryCastingSpell", (client, data: TryCastingSpellData) => {
+      // if (
+      //   !this._isPlayground &&
+      //   !(
+      //     this._idMapping[client.id] ===
+      //     (this._game.GetPlayerTurnColor() === Color.Blue
+      //       ? this._bluePlayerId
+      //       : this._redPlayerId)
+      //   )
+      // ) {
+      //   return;
+      // }
       this.tryCastingSpell(data);
     });
   }
@@ -200,7 +239,6 @@ export class GameRoom extends Room {
   }
 
   private tryMoveUnit(data: TryMoveUnitData) {
-    //if(!this._isPlayground && !(client.id === (this._game.GetPlayerTurnColor() === Color.Blue ? this._bluePlayerId : this._redPlayerId))) return;
     var moveUnitResult = this._game.TryMoveUnit(data.selectedUnit, data.tile);
     if (moveUnitResult !== null) {
       this.updateState();
@@ -209,7 +247,6 @@ export class GameRoom extends Room {
   }
 
   private tryCaptureUnit(data: TryCaptureUnitData) {
-    //if(!this._isPlayground && !(client.id === (this._game.GetPlayerTurnColor() === Color.Blue ? this._bluePlayerId : this._redPlayerId))) return;
     var captureUnitResult = this._game.TryCaptureUnit(
       data.selectedUnit,
       data.capturingUnit
@@ -222,7 +259,6 @@ export class GameRoom extends Room {
 
   private tryCastingSpell(data: TryCastingSpellData) {
     //console.log("try casting spell game")
-    //if(!this._isPlayground && !(client.id === (this._game.GetPlayerTurnColor() === Color.Blue ? this._bluePlayerId : this._redPlayerId))) return;
 
     const castingUnit = this._game.GetGameObjectById(data.castingUnit) as Unit;
 
@@ -295,16 +331,29 @@ export class GameRoom extends Room {
   }
 
   endGame = (winnerColor: number, reason: string) => {
+    var winnerName = "";
+    var winnerFlag = winnerColor === Color.Blue ? true : false;
+    if (winnerColor === 0) {
+      winnerName = this._bluePlayerName;
+    } else if (winnerColor === 1) {
+      winnerName = this._redPlayerName;
+    } else {
+      winnerFlag = null;
+    }
+
     this.broadcast("GameOver", {
-      winnerColor,
-      reason,
+      winnerColor: winnerColor,
+      reason: reason,
+      winnerName: winnerName,
+      bluePlayerName: this._bluePlayerName,
+      redPlayerName: this._redPlayerName,
     });
 
     dbConnection.insertMatch(
       new Date(Date.now()),
       this._bluePlayerId,
       this._redPlayerId,
-      winnerColor === Color.Blue ? true : false
+      winnerFlag
     );
 
     this._isGameOver = true; // set game over flag to true
