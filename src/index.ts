@@ -4,7 +4,7 @@ if (process.env.NODE_ENV !== "production") {
 
 const ORIGIN =
   process.env.NODE_ENV === "production"
-    ? "https://runechessserver.azurewebsites.net"
+    ? "https://brave-meadow-0fbc22b03.3.azurestaticapps.net"
     : "http://localhost:4200";
 
 import { createServer } from "http";
