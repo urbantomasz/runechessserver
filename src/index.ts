@@ -2,6 +2,11 @@ if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
 
+const ORIGIN =
+  process.env.NODE_ENV === "production"
+    ? "https://runechessserver.azurewebsites.net"
+    : "http://localhost:4200";
+
 import { createServer } from "http";
 import { Server } from "@colyseus/core";
 import { WebSocketTransport } from "@colyseus/ws-transport";
@@ -18,7 +23,7 @@ const dbConnection = require("./dbConnection");
 app.use("/colyseus", monitor());
 app.use(
   cors({
-    origin: "http://localhost:4200",
+    origin: ORIGIN,
   })
 );
 app.get("/", function (req, res) {
