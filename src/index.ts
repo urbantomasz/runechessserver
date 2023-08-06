@@ -5,6 +5,7 @@ if (process.env.NODE_ENV !== "production") {
 const ORIGIN =
   process.env.NODE_ENV === "production"
     ? [
+        "https://runechess.com",
         "https://www.runechess.com",
         "https://brave-meadow-0fbc22b03.3.azurestaticapps.net",
       ]
