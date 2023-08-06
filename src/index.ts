@@ -22,6 +22,7 @@ import { GameRoom } from "./rooms/GameRoom";
 import { LobbyRoom } from "./rooms/LobbyRoom";
 import { monitor } from "@colyseus/monitor";
 import { Request, Response } from "express";
+import { BotRoom } from "./rooms/BotRoom";
 
 const app = express();
 const cors = require("cors");
@@ -66,5 +67,6 @@ const gameServer = new Server({
 
 gameServer.define("GameRoom", GameRoom);
 gameServer.define("LobbyRoom", LobbyRoom);
+gameServer.define("BotRoom", BotRoom);
 gameServer.listen(PORT);
 console.log("port test: " + PORT);

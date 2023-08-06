@@ -8,11 +8,12 @@ export class LobbyRoom extends Room<LobbyRoomSchema> {
   evaluateGroupsInterval = 2000;
   playersSearching = new Array<Client>();
   ongoingGames = new Map<number, string>();
-  connectedGoogleIds = new Set<string>();
+  connectedIds = new Set<string>();
   constructor() {
     super();
     this.setState(new LobbyRoomSchema());
   }
+
   onCreate(options: any) {
     this.autoDispose = false;
 
@@ -114,18 +115,19 @@ export class LobbyRoom extends Room<LobbyRoomSchema> {
   }
 
   async onJoin(client: Client, options: any) {
-    var googleId = options.sub;
+    console.log("Client join the Lobby Room.");
+    var subId = options.sub;
     var playerName = options.name;
 
-    if (this.connectedGoogleIds.has(googleId)) {
+    if (this.connectedIds.has(subId)) {
       client.error(0, "User already logged in.");
       return;
     } else {
-      this.connectedGoogleIds.add(googleId);
+      this.connectedIds.add(subId);
     }
 
     const playerId = await dbConnection.insertPlayerIfNotFound(
-      googleId,
+      subId,
       playerName,
       playerName
     );
@@ -134,7 +136,7 @@ export class LobbyRoom extends Room<LobbyRoomSchema> {
 
     this.state.players.set(
       client.sessionId,
-      new PlayerSchema(playerName, playerId, googleId, client.sessionId)
+      new PlayerSchema(playerName, playerId, subId, client.sessionId)
     );
 
     // Check if this user has an ongoing game
@@ -157,10 +159,9 @@ export class LobbyRoom extends Room<LobbyRoomSchema> {
 
   onLeave(client: Client, consented: boolean) {
     this.removeClientFromQueue(client);
-    this.connectedGoogleIds.delete(
-      this.state.players[client.sessionId].googleId
-    );
+    this.connectedIds.delete(this.state.players[client.sessionId].googleId);
     this.state.players.delete(client.sessionId);
+    console.log("Client leave the Lobby room.");
   }
 
   onDispose() {
