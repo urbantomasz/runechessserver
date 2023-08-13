@@ -1,6 +1,6 @@
-export abstract class GameObject{
-    id: string;
-    row: number;
-    column: number;
-    abstract toNotationString(): string;
+export abstract class GameObject {
+  id: string;
+  row: number;
+  column: number;
+  abstract toNotationString(): string;
 }

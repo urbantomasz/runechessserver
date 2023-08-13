@@ -4,7 +4,11 @@ import { GameObject } from "./GameObject";
 import { Move } from "./Move";
 import { ISpell } from "./Spell";
 import { AvailableCasts } from "./SpellManager";
-import { CaptureUnitResult, MoveUnitResult } from "./StateManager";
+import {
+  CaptureUnitResult,
+  EnPassantResult,
+  MoveUnitResult,
+} from "./StateManager";
 import { Tile } from "./Tile";
 import { Unit } from "./Unit";
 import { AvailableMoves } from "./Validator";
@@ -31,5 +35,9 @@ export interface IGame {
     selectedUnitId: string,
     capturingUnitId: string
   ) => CaptureUnitResult;
+  TryEnPassantUnit: (
+    peasantId: string,
+    capturingPeasantId: string
+  ) => EnPassantResult;
   TryCastingSpell: (castingUnitId: string, targetUnitId: string) => boolean;
 }

@@ -8,11 +8,11 @@
     "strictNullChecks": false,
     "esModuleInterop": true,
     "suppressImplicitAnyIndexErrors": true,
+    "ignoreDeprecations": "5.0",
     "experimentalDecorators": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": [
-    "src", "./../shared"
-  ]
+  "include": ["src"],
+  "exclude": ["src/test/**/*"]
 }

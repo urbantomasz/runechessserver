@@ -7,7 +7,8 @@ import { LobbyRoom } from "./rooms/LobbyRoom";
  * Import your Room files
  */
 import { GameRoom } from "./rooms/GameRoom";
-
+import { Request, Response } from "express";
+import { BotRoom } from "./rooms/BotRoom";
 export default Arena({
   getId: () => "Your Colyseus App",
 
@@ -17,13 +18,14 @@ export default Arena({
      */
     gameServer.define("GameRoom", GameRoom);
     gameServer.define("LobbyRoom", LobbyRoom);
+    gameServer.define("BotRoom", BotRoom);
   },
 
   initializeExpress: (app) => {
     /**
      * Bind your custom express routes here:
      */
-    app.get("/", (req, res) => {
+    app.get("/", (req: Request, res: Response) => {
       res.send("It's time to kick ass and chew bubblegum!");
     });
 
