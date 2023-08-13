@@ -105,9 +105,16 @@ export class MoveCommand extends TargetCommand {
   private _unitIsMoved: boolean;
   private _tile: Tile;
   private _promotePeasantCommand: PromotePeasantCommand;
-
+  private _isEnPassant: boolean;
   public get IsPeasantPromoted(): boolean {
     return this._promotePeasantCommand !== null;
+  }
+  public get IsEnPassant(): boolean {
+    return this._isEnPassant;
+  }
+
+  public get EnPassant(): Peasant {
+    return this._unit as Peasant;
   }
 
   constructor(unit: Unit, tile: Tile, units: Unit[]) {
@@ -136,16 +143,88 @@ export class MoveCommand extends TargetCommand {
   }
 
   Execute(): void {
+    if (
+      this._unit instanceof Peasant &&
+      !this._unit.isMoved &&
+      Math.abs(this._unit.row - this._tile.row) == 2
+    ) {
+      this._unit.isEnPassant = true;
+      this._unit.enPassantColumn = this._unitStartColumn;
+      this._unit.enPassantRow = (this._unitStartRow + this._tile.row) / 2;
+      this._isEnPassant = true;
+    }
     this._unit.column = this._tile.column;
     this._unit.row = this._tile.row;
     this._unit.isMoved = true;
     this._promotePeasantCommand?.Execute();
   }
   Undo(): void {
+    if (this._unit instanceof Peasant && this._isEnPassant) {
+      this._unit.isEnPassant = false;
+      this._unit.enPassantColumn = null;
+      this._unit.enPassantRow = null;
+    }
     this._unit.column = this._unitStartColumn;
     this._unit.row = this._unitStartRow;
     this._unit.isMoved = this._unitIsMoved;
     this._promotePeasantCommand?.Undo();
+  }
+}
+
+export class EnPassantCommand extends TargetCommand {
+  public readonly UnitId: string;
+  public readonly TargetId: string;
+  public moveCommand: MoveCommand;
+  public captureCommand: CaptureCommand;
+  private capturingPeasant: Peasant;
+  private peasant: Peasant;
+  private units: Unit[];
+  private tiles: Tile[][];
+  private _enPassantTile: Tile;
+
+  public get enPassantTile(): Tile {
+    return this._enPassantTile;
+  }
+
+  constructor(
+    peasant: Peasant,
+    capturingPeasant: Peasant,
+    units: Unit[],
+    tiles: Tile[][]
+  ) {
+    super(peasant, capturingPeasant);
+    this.capturingPeasant = capturingPeasant;
+    this.peasant = peasant;
+    this.units = units;
+    this.tiles = tiles;
+    this._enPassantTile =
+      tiles[capturingPeasant.enPassantRow][capturingPeasant.enPassantColumn];
+  }
+
+  Execute(): void {
+    this.moveCommand = new MoveCommand(
+      this.capturingPeasant,
+      this._enPassantTile,
+      this.units
+    );
+    this.moveCommand.Execute();
+    this.captureCommand = new CaptureCommand(
+      this.peasant,
+      this.capturingPeasant,
+      this.units,
+      this.tiles
+    );
+    this.captureCommand.Execute();
+    this.capturingPeasant.isEnPassant = false;
+    this.capturingPeasant.enPassantRow = null;
+    this.capturingPeasant.enPassantColumn = null;
+  }
+  Undo(): void {
+    this.captureCommand.Undo();
+    this.moveCommand.Undo();
+    this.capturingPeasant.isEnPassant = true;
+    this.capturingPeasant.enPassantRow = this._enPassantTile.row;
+    this.capturingPeasant.enPassantColumn = this._enPassantTile.column;
   }
 }
 
@@ -214,3 +293,75 @@ export class SpellCommand extends TargetCommand {
     this._castingUnit.usedSpell = false;
   }
 }
+
+// export class CaptureCommand extends TargetCommand {
+//   public readonly UnitId: string;
+//   public readonly TargetId: string;
+//   public moveCommand: MoveCommand;
+//   private _capturingUnit: Unit;
+//   private _capturingUnitTile: Tile;
+//   private _capturingUnitTileLCU: Unit;
+
+//   private _moveCommandEnPassant: MoveCommand;
+//   private _isEnPassant: boolean;
+//   private _capturingUnitTileEnPassant: Tile;
+//   private _capturingUnitTileLCUEnPassant: Unit;
+
+//   public get CapturingUnitTile(): Tile {
+//     return this._capturingUnitTile;
+//   }
+
+//   constructor(unit: Unit, capturingUnit: Unit, units: Unit[], tiles: Tile[][]) {
+//     super(unit, capturingUnit);
+//     this._capturingUnit = capturingUnit;
+//     if (
+//       unit instanceof Peasant &&
+//       this._capturingUnit instanceof Peasant &&
+//       this._capturingUnit.isEnPassant
+//     ) {
+//       this._isEnPassant = true;
+//       this._capturingUnitTileEnPassant =
+//         tiles[this._capturingUnit.enPassantRow][
+//           this._capturingUnit.enPassantColumn
+//         ];
+//       this._capturingUnitTileLCUEnPassant =
+//         this._capturingUnitTileEnPassant.lastCapturedUnit;
+//       this._moveCommandEnPassant = new MoveCommand(
+//         capturingUnit,
+//         this._capturingUnitTileEnPassant,
+//         units
+//       );
+//       this.moveCommand = new MoveCommand(
+//         unit,
+//         this._capturingUnitTileEnPassant,
+//         units
+//       );
+//     } else {
+//       this._capturingUnitTile =
+//         tiles[this._capturingUnit.row][this._capturingUnit.column];
+//       this._capturingUnitTileLCU = this._capturingUnitTile.lastCapturedUnit;
+//       this.moveCommand = new MoveCommand(unit, this._capturingUnitTile, units);
+//     }
+//   }
+//   Execute(): void {
+//     if (this._isEnPassant) {
+//       this._moveCommandEnPassant.Execute();
+//       this._capturingUnitTileEnPassant.lastCapturedUnit = this._capturingUnit;
+//     } else {
+//       this._capturingUnitTile.lastCapturedUnit = this._capturingUnit;
+//     }
+//     this._capturingUnit.isCaptured = true;
+//     this.moveCommand.Execute();
+//   }
+//   Undo(): void {
+//     if (this._isEnPassant) {
+//       this._moveCommandEnPassant.Undo();
+//       this._capturingUnitTileEnPassant.lastCapturedUnit =
+//         this._capturingUnitTileLCUEnPassant;
+//     } else {
+//       this._capturingUnitTile.lastCapturedUnit = this._capturingUnitTileLCU;
+//     }
+//     this._capturingUnit.isCaptured = false;
+//     this.moveCommand.Undo();
+//   }
+// }

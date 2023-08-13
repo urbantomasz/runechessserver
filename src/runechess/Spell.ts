@@ -59,6 +59,7 @@ export class Sacrifice implements ISpell {
   _castingUnitStartingColumn: number;
   _targetUnitStartingRow: number;
   _targetUnitStartingColumn: number;
+  _targetUnitIsMoved: boolean;
 
   GetValidTargets(castingUnit: Unit, spellManager: SpellManager): Unit[] {
     return spellManager.GetSacrificeCastables(castingUnit);
@@ -71,6 +72,7 @@ export class Sacrifice implements ISpell {
     this._castingUnitStartingColumn = castingUnit.column;
     this._targetUnitStartingRow = target.row;
     this._targetUnitStartingColumn = target.column;
+    this._targetUnitIsMoved = (<Unit>target).isMoved;
     spellManager.CastSacrifice(castingUnit, target as Unit);
   }
 
@@ -80,6 +82,7 @@ export class Sacrifice implements ISpell {
     this._castingUnit.column = this._castingUnitStartingColumn;
     this._targetUnit.row = this._targetUnitStartingRow;
     this._targetUnit.column = this._targetUnitStartingColumn;
+    (<Unit>this._targetUnit).isMoved = this._targetUnitIsMoved;
   }
 }
 
@@ -186,7 +189,7 @@ export class PowerStomp implements ISpell {
   _castingUnitStartingColumn: number;
   _affectedUnitPositions: Map<
     Unit,
-    { startingRow: number; startingColumn: number }
+    { startingRow: number; startingColumn: number; isMoved: boolean }
   >;
 
   GetValidTargets(castingUnit: Unit, spellManager: SpellManager): Tile[] {
@@ -202,7 +205,7 @@ export class PowerStomp implements ISpell {
     this._castingUnitStartingColumn = castingUnit.column;
     this._affectedUnitPositions = new Map<
       Unit,
-      { startingRow: number; startingColumn: number }
+      { startingRow: number; startingColumn: number; isMoved: boolean }
     >();
     this._tilesBehindMap
       .get(target as Tile)
@@ -210,6 +213,7 @@ export class PowerStomp implements ISpell {
         this._affectedUnitPositions.set(unit, {
           startingRow: unit.row,
           startingColumn: unit.column,
+          isMoved: unit.isMoved,
         });
       });
     spellManager.CastPowerStomp(
@@ -225,7 +229,7 @@ export class PowerStomp implements ISpell {
     this._affectedUnitPositions.forEach((position, unit) => {
       unit.row = position.startingRow;
       unit.column = position.startingColumn;
-      unit.isCaptured = false;
+      unit.isMoved = position.isMoved;
     });
   }
 }

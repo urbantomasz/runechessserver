@@ -1,5 +1,5 @@
 import { Tile } from "./Tile";
-import { Princess, Unit } from "./Unit";
+import { Peasant, Princess, Unit } from "./Unit";
 import { rotateMatrix90 } from "./Helpers";
 import { Game } from "./Game";
 import { Color, MoveType } from "./Enums";
@@ -8,6 +8,7 @@ import { CaptureCommand, MoveCommand } from "./Commands";
 export interface AvailableMoves {
   Tiles: Tile[];
   Units: Unit[];
+  EnPassant: Unit;
 }
 
 export class Validator {
@@ -212,9 +213,33 @@ export class Validator {
         }
       }
     }
+
+    var enPassant = null;
+
+    if (unit instanceof Peasant) {
+      let potentialTargets = [-1, 1];
+
+      for (let offset of potentialTargets) {
+        let targetColumn = unit.column + offset;
+        let targetPawn = unitsOnBoard.find(
+          (_unit) =>
+            _unit.row === unit.row &&
+            _unit.column === targetColumn &&
+            _unit instanceof Peasant &&
+            _unit.isEnPassant
+        );
+
+        // Check if we found a pawn and it's of the opposite color
+        if (targetPawn && targetPawn.color !== unit.color) {
+          enPassant = targetPawn;
+        }
+      }
+    }
+
     return {
       Tiles: tilesToMove,
       Units: unitsToTake,
+      EnPassant: enPassant,
     };
   }
 
@@ -264,6 +289,17 @@ export class Validator {
         if (unitsPlacement[i][j] == 1) unitsPlacement[i][j]++;
         break;
       case MoveType.OnlyMove:
+        // Check if this is a two-step Peasant move.
+        if (unit instanceof Peasant && !unit.isMoved) {
+          let direction = unit.color === Color.Blue ? 1 : -1;
+          // Check if trying to move two steps forward
+          if (
+            i === unit.row + 2 * direction &&
+            unitsPlacement[unit.row + direction][j] === 1
+          ) {
+            break; // Skip this move
+          }
+        }
         if (unitsPlacement[i][j] != 1) unitsPlacement[i][j] = 0;
         break;
       case Infinity: {

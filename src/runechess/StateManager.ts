@@ -5,7 +5,7 @@ import { GameObject } from "./GameObject";
 import { Move } from "./Move";
 import { SpellManager } from "./SpellManager";
 import { Tile } from "./Tile";
-import { Princess, Unit } from "./Unit";
+import { Peasant, Princess, Unit } from "./Unit";
 import { Validator } from "./Validator";
 import {
   CaptureCommand,
@@ -13,6 +13,7 @@ import {
   MoveCommand,
   SpellCommand,
   TurnFinishedCommand,
+  EnPassantCommand,
 } from "./Commands";
 import { GameSettings } from "./GameSettings";
 
@@ -23,6 +24,7 @@ export class StateManager {
   private _units: Unit[];
   private _playerTurnColor: Color;
   private _commands: TargetCommand[] = [];
+  private _enPassant: Peasant | null;
   private readonly _settings: GameSettings;
   constructor(
     units: Unit[],
@@ -140,7 +142,12 @@ export class StateManager {
 
     moveCommand.Execute();
 
-    this.FinishTurnCommand(moveCommand).Execute();
+    if (moveCommand.IsEnPassant) {
+      this._enPassant = moveCommand.EnPassant;
+      this.FinishTurnCommand(moveCommand, true).Execute();
+    } else {
+      this.FinishTurnCommand(moveCommand).Execute();
+    }
 
     return {
       selectedUnit: unit.id,
@@ -190,11 +197,58 @@ export class StateManager {
     };
   }
 
+  public TryEnPassant(
+    peasant: Peasant,
+    capturingPeasant: Peasant
+  ): EnPassantResult {
+    if (this._settings.validateMoves) {
+      if (
+        !(
+          this._validator.UnitsAvailableMoves.get(peasant).EnPassant ===
+          capturingPeasant
+        )
+      ) {
+        return;
+      }
+    }
+
+    if (this._settings.validatePlayerColor) {
+      if (this._playerTurnColor !== peasant.color) {
+        return;
+      }
+    }
+
+    var enPassantCommand = new EnPassantCommand(
+      peasant,
+      capturingPeasant,
+      this._units,
+      this._tiles
+    );
+
+    enPassantCommand.Execute();
+
+    this.FinishTurnCommand(enPassantCommand).Execute();
+
+    return {
+      peasant: peasant.id,
+      capturedPeasant: capturingPeasant.id,
+      enPassantTile: enPassantCommand.enPassantTile.id,
+    };
+  }
+
   public FinishTurnCommand(
-    command: TargetCommand | null = null
+    command: TargetCommand | null = null,
+    isEnPassant: boolean = false
   ): TurnFinishedCommand {
+    console.log(command);
     if (command !== null) {
       this._commands.push(command);
+    }
+    if (!isEnPassant && this._enPassant) {
+      this._enPassant.isEnPassant = false;
+      this._enPassant.enPassantColumn = null;
+      this._enPassant.enPassantRow = null;
+      this._enPassant = null;
     }
     return new TurnFinishedCommand(this, this._spellManager, this._validator);
   }
@@ -251,6 +305,12 @@ export interface CaptureUnitResult {
   selectedUnitNewTile: string;
   capturedUnit: string;
   isPeasantPromoted: boolean;
+}
+
+export interface EnPassantResult {
+  peasant: string;
+  capturedPeasant: string;
+  enPassantTile: string;
 }
 
 // selectedUnit: data.selectedUnit,

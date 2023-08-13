@@ -1,9 +1,10 @@
 import { Player } from "./Player";
 import { Tile } from "./Tile";
-import { Princess, Unit } from "./Unit";
+import { Peasant, Princess, Unit } from "./Unit";
 import { AvailableMoves, Validator } from "./Validator";
 import {
   CaptureUnitResult,
+  EnPassantResult,
   MoveUnitResult,
   StateManager,
 } from "./StateManager";
@@ -94,6 +95,16 @@ export class Game implements IGame {
     return this._stateManager.TryTakeUnit(
       this.GetGameObjectById(selectedUnitId) as Unit,
       this.GetGameObjectById(capturingUnitId) as Unit
+    );
+  }
+
+  public TryEnPassantUnit(
+    peasantId: string,
+    capturingPeasantId: string
+  ): EnPassantResult {
+    return this._stateManager.TryEnPassant(
+      this.GetGameObjectById(peasantId) as Peasant,
+      this.GetGameObjectById(capturingPeasantId) as Peasant
     );
   }
 

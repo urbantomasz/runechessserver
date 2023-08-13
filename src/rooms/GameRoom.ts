@@ -4,13 +4,14 @@ import { Game } from "../runechess/Game";
 import { IGame } from "../runechess/IGame";
 import { PowerStomp } from "../runechess/Spell";
 import { Tile } from "../runechess/Tile";
-import { Knight, Princess, Rogue, Unit } from "../runechess/Unit";
+import { Knight, Peasant, Princess, Rogue, Unit } from "../runechess/Unit";
 import { Position } from "../runechess/Position";
 import {
   UnitDTO,
   TileDTO,
   AvailableMovesDTO,
   AvailableCastsDTO,
+  UnitTargetDTO,
 } from "../runechess/DTOs";
 import { AvailableMoves } from "../runechess/Validator";
 import { AvailableCasts } from "../runechess/SpellManager";
@@ -73,7 +74,8 @@ export class GameRoom extends Room {
       // }
 
       this.broadcast("StateChange", this.getGameStateData());
-    } catch {
+    } catch (error) {
+      console.log(error);
       this.endGame(null, "Match has been cancelled. (Server Internal Error)");
     }
   }
@@ -222,6 +224,11 @@ export class GameRoom extends Room {
       // }
       this.tryCastingSpell(data);
     });
+
+    this.onMessage("TryEnPassant", (client, data: TryCaptureUnitData) => {
+      console.log(data);
+      this.tryEnPassant(data);
+    });
   }
 
   async onLeave(client: Client, consented: boolean) {
@@ -254,6 +261,18 @@ export class GameRoom extends Room {
     if (captureUnitResult !== null) {
       this.updateState();
       this.broadcast("UnitCaptured", captureUnitResult);
+    }
+  }
+
+  private tryEnPassant(data: TryCaptureUnitData) {
+    var enPassantResult = this._game.TryEnPassantUnit(
+      data.selectedUnit,
+      data.capturingUnit
+    );
+    console.log(enPassantResult);
+    if (enPassantResult !== null) {
+      this.updateState();
+      this.broadcast("EnPassant", enPassantResult);
     }
   }
 
@@ -386,6 +405,14 @@ function mapMovesToDTO(
     let availableMoves = new AvailableMovesDTO();
     availableMoves.Tiles = value.Tiles.map((x) => x.id);
     availableMoves.Units = value.Units.map((x) => x.id);
+    // availableMoves.Units = value.Units.map((x) => {
+    //   var unitTargetDTO = {} as UnitTargetDTO;
+    //   unitTargetDTO.Id = x.id;
+    //   unitTargetDTO.IsEnPassant =
+    //     x instanceof Peasant && x.isEnPassant ? true : false;
+    //   return unitTargetDTO;
+    // });
+    availableMoves.EnPassant = value.EnPassant?.id;
     availableMovesDTO.set(key.id, availableMoves);
   }
 

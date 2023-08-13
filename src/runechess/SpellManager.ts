@@ -438,6 +438,7 @@ export class SpellManager {
 
   CastSacrifice(sacrificingUnit: Unit, allyUnit: Unit) {
     this.SwapUnits(sacrificingUnit, allyUnit);
+    allyUnit.isMoved = true;
     sacrificingUnit.isCaptured = true;
   }
 
