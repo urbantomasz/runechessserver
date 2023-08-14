@@ -138,6 +138,13 @@ export class StateManager {
       }
     }
 
+    if (this._enPassant) {
+      this._enPassant.isEnPassant = false;
+      this._enPassant.enPassantColumn = null;
+      this._enPassant.enPassantRow = null;
+      this._enPassant = null;
+    }
+
     let moveCommand = new MoveCommand(unit, tile, this._units);
 
     moveCommand.Execute();
