@@ -14,6 +14,14 @@ import { Game } from "./Game";
 import { GameObject } from "./GameObject";
 import { Validator } from "./Validator";
 import { Color } from "./Enums";
+import { TryCastingSpellData } from "../rooms/GameRoom";
+import { TryCastingSpellModel } from "./Models/TryCastingSpellModel";
+import {
+  CastNotValidResult,
+  CastSpellResult,
+  KnightCastSpellResult,
+  PrincessCastSpellResult,
+} from "./Models/Results";
 
 export interface AvailableCasts {
   Targets: GameObject[];
@@ -636,6 +644,63 @@ export class SpellManager {
     targetUnit.color = castingUnit.color;
     this._tiles[targetUnit.row][targetUnit.column].lastCapturedUnit = null;
     return this._tiles[targetUnit.row][targetUnit.column];
+  }
+
+  public GenerateCastSpellResult(
+    data: TryCastingSpellModel
+  ): CastSpellResult | CastNotValidResult {
+    const castingUnit = data.castingUnit;
+
+    if (!castingUnit) {
+      return {} as CastNotValidResult;
+    }
+
+    if (castingUnit instanceof Knight) {
+      const unitSpell = this.Spells.get(castingUnit) as PowerStomp;
+      const targetingTile = data.targetObject as Tile;
+      let unitTileMap = new Map<string, string>();
+
+      unitSpell._tilesBehindMap.get(targetingTile).forEach((v, k) => {
+        unitTileMap.set(k.id, Tile.CreateTileId(v.row, v.column));
+      });
+
+      let unitTileMapStringified = JSON.stringify(
+        Array.from(unitTileMap.entries())
+      );
+
+      return {
+        castingUnit: data.castingUnit.id,
+        targetingObject: data.targetObject.id,
+        unitTileMap: unitTileMapStringified,
+      } as KnightCastSpellResult;
+    } else if (
+      castingUnit instanceof Princess ||
+      castingUnit instanceof Rogue ||
+      castingUnit instanceof Mage ||
+      castingUnit instanceof Priest ||
+      castingUnit instanceof King
+    ) {
+      const targetingUnit = data.targetObject as Unit;
+
+      return {
+        castingUnit: data.castingUnit.id,
+        targetingObject: data.targetObject.id,
+        castingUnitNewTile: Tile.CreateTileId(
+          castingUnit.row,
+          castingUnit.column
+        ),
+        targetingUnit: targetingUnit.id,
+        targetingUnitNewTile: Tile.CreateTileId(
+          targetingUnit.row,
+          targetingUnit.column
+        ),
+      } as PrincessCastSpellResult; // Note: This assumes that all these types return the same structure. If they diverge in the future, separate if conditions will be required.
+    } else {
+      return {
+        castingUnit: data.castingUnit.id,
+        targetingObject: data.targetObject.id,
+      } as CastSpellResult;
+    }
   }
 }
 

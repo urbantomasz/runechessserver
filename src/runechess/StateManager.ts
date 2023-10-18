@@ -1,11 +1,17 @@
-import { globalEvent } from "@billjs/event-emitter";
 import { Color } from "./Enums";
-import { Game } from "./Game";
 import { GameObject } from "./GameObject";
-import { Move } from "./Move";
 import { SpellManager } from "./SpellManager";
 import { Tile } from "./Tile";
-import { Peasant, Princess, Unit } from "./Unit";
+import {
+  King,
+  Knight,
+  Mage,
+  Peasant,
+  Priest,
+  Princess,
+  Rogue,
+  Unit,
+} from "./Unit";
 import { Validator } from "./Validator";
 import {
   CaptureCommand,
@@ -16,6 +22,14 @@ import {
   EnPassantCommand,
 } from "./Commands";
 import { GameSettings } from "./GameSettings";
+import { PowerStomp } from "./Spell";
+import {
+  CastSpellResult,
+  CastNotValidResult,
+  MoveUnitResult,
+  CaptureUnitResult,
+  EnPassantResult,
+} from "./Models/Results";
 
 export class StateManager {
   private _validator: Validator;
@@ -97,18 +111,21 @@ export class StateManager {
     return null;
   }
 
-  public TryCastingSpell(castingUnit: Unit, targetObject: GameObject): boolean {
+  public TryCastingSpell(
+    castingUnit: Unit,
+    targetObject: GameObject
+  ): CastSpellResult | CastNotValidResult {
     if (
       !this._spellManager.UnitsAvailableCasts.get(castingUnit).Targets.includes(
         targetObject
       )
     ) {
-      return false;
+      return null;
     }
 
     if (this._settings.validatePlayerColor) {
       if (this._playerTurnColor !== castingUnit.color) {
-        return false;
+        return null;
       }
     }
 
@@ -122,7 +139,10 @@ export class StateManager {
 
     this.FinishTurnCommand(spellCommand).Execute();
 
-    return true;
+    return this._spellManager.GenerateCastSpellResult({
+      castingUnit: castingUnit,
+      targetObject: targetObject,
+    });
   }
 
   public TryMoveUnit(unit: Unit, tile: Tile): MoveUnitResult {
@@ -300,29 +320,3 @@ export class StateManager {
     return commandsArray;
   }
 }
-
-export interface MoveUnitResult {
-  selectedUnit: string;
-  tile: string;
-  isPeasantPromoted: boolean;
-}
-
-export interface CaptureUnitResult {
-  selectedUnit: string;
-  selectedUnitNewTile: string;
-  capturedUnit: string;
-  isPeasantPromoted: boolean;
-}
-
-export interface EnPassantResult {
-  peasant: string;
-  capturedPeasant: string;
-  enPassantTile: string;
-}
-
-// selectedUnit: data.selectedUnit,
-// selectedUnitNewTile: Tile.CreateTileId(
-//   selectedUnit.row,
-//   selectedUnit.column
-// ),
-// capturedUnit: data.capturingUnit,
