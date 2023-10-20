@@ -1,9 +1,9 @@
 import { assert, expect, test } from 'vitest'
-import { Game } from '../runechess/Game';
+import { GameTestAdapter } from '../runechess/GameTestAdapter';
 import { CaptureCommand, MoveCommand } from '../runechess/Commands';
 
 test("CaptureCommandTest", ()=>{
-    var game = new Game();
+    var game = new GameTestAdapter();
 
     var unit = game.Units[0];
     var unitStartingRow = unit.row;
@@ -40,7 +40,7 @@ test("CaptureCommandTest", ()=>{
 })
 
 test("MoveCommandTest", ()=>{
-    var game = new Game();
+    var game = new GameTestAdapter();
 
     var unit = game.Units[0];
     var unitStartingRow = unit.row;

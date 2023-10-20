@@ -1,11 +1,17 @@
-import { globalEvent } from "@billjs/event-emitter";
-import { Color } from "./Enums";
-import { Game } from "./Game";
+import { Color, GameState } from "./Enums";
 import { GameObject } from "./GameObject";
-import { Move } from "./Move";
 import { SpellManager } from "./SpellManager";
 import { Tile } from "./Tile";
-import { Peasant, Princess, Unit } from "./Unit";
+import {
+  King,
+  Knight,
+  Mage,
+  Peasant,
+  Priest,
+  Princess,
+  Rogue,
+  Unit,
+} from "./Unit";
 import { Validator } from "./Validator";
 import {
   CaptureCommand,
@@ -16,6 +22,14 @@ import {
   EnPassantCommand,
 } from "./Commands";
 import { GameSettings } from "./GameSettings";
+import { PowerStomp } from "./Spell";
+import {
+  CastSpellResult,
+  CastNotValidResult,
+  MoveUnitResult,
+  CaptureUnitResult,
+  EnPassantResult,
+} from "./Models/Results";
 
 export class StateManager {
   private _validator: Validator;
@@ -23,9 +37,11 @@ export class StateManager {
   private _tiles: Tile[][];
   private _units: Unit[];
   private _playerTurnColor: Color;
+  private _is50MoveRule: boolean;
   private _commands: TargetCommand[] = [];
   private _enPassant: Peasant | null;
   private readonly _settings: GameSettings;
+  private _isInsufficientMaterial: boolean;
   constructor(
     units: Unit[],
     tiles: Tile[][],
@@ -38,6 +54,7 @@ export class StateManager {
     this._validator = validator;
     this._spellManager = spellManager;
     this._playerTurnColor = Color.Blue;
+    this._is50MoveRule = false;
     this._settings = settings;
   }
 
@@ -72,14 +89,57 @@ export class StateManager {
   }
 
   public get Is50MoveRule(): boolean {
-    if (this._commands.length < 50) return false;
+    return this._is50MoveRule;
+  }
+
+  public get State(): GameState{
+    var state = GameState.Ongoing;
+    if(this.IsStaleMate)
+     state = GameState.Stalemate
+    if(this.IsCheck)
+      state = GameState.Check;
+    if(this.IsMate)
+      state = GameState.CheckMate
+    if(this.Is50MoveRule)
+      state = GameState.MaxMoveRule
+    if(this.IsInsufficientMaterial)
+     state = GameState.InsufficientMaterial
+    return state;
+  }
+
+  public UpdateInsufficientMaterial(): void {
+    this._isInsufficientMaterial = this.Units.filter((u) => !u.isCaptured).every(
+      (u) => u instanceof Princess
+    );
+  }
+
+  public get IsInsufficientMaterial(): boolean{
+    return this._isInsufficientMaterial;
+  }
+
+  public set IsInsufficientMaterial(isInsufficientMaterial: boolean){
+    this._isInsufficientMaterial = isInsufficientMaterial;
+  }
+
+  public UpdateIs50MoveRule(): void{
+    if (this._commands.length < 50){
+      this._is50MoveRule = false;
+      return;
+    }
 
     // Check the last 50 moves for a capture
     for (let i = this._commands.length - 50; i < this._commands.length; i++) {
-      if (this._commands[i] instanceof CaptureCommand) return false; // or check some other condition
+      if (this._commands[i] instanceof CaptureCommand){
+        this._is50MoveRule = false;
+        return;
+      } // or check some other condition
     }
 
-    return true;
+    this._is50MoveRule = true;
+  }
+
+  public set Is50MoveRule(is50MoveRule: boolean) {
+    this._is50MoveRule = is50MoveRule;
   }
 
   public GetUnitById(id: string): Unit {
@@ -97,18 +157,21 @@ export class StateManager {
     return null;
   }
 
-  public TryCastingSpell(castingUnit: Unit, targetObject: GameObject): boolean {
+  public TryCastingSpell(
+    castingUnit: Unit,
+    targetObject: GameObject
+  ): CastSpellResult | CastNotValidResult {
     if (
       !this._spellManager.UnitsAvailableCasts.get(castingUnit).Targets.includes(
         targetObject
       )
     ) {
-      return false;
+      return null;
     }
 
     if (this._settings.validatePlayerColor) {
       if (this._playerTurnColor !== castingUnit.color) {
-        return false;
+        return null;
       }
     }
 
@@ -122,7 +185,10 @@ export class StateManager {
 
     this.FinishTurnCommand(spellCommand).Execute();
 
-    return true;
+    return this._spellManager.GenerateCastSpellResult({
+      castingUnit: castingUnit,
+      targetObject: targetObject,
+    });
   }
 
   public TryMoveUnit(unit: Unit, tile: Tile): MoveUnitResult {
@@ -160,7 +226,7 @@ export class StateManager {
       selectedUnit: unit.id,
       tile: tile.id,
       isPeasantPromoted: moveCommand.IsPeasantPromoted,
-    };
+    } as MoveUnitResult;
   }
 
   public TryTakeUnit(
@@ -300,29 +366,3 @@ export class StateManager {
     return commandsArray;
   }
 }
-
-export interface MoveUnitResult {
-  selectedUnit: string;
-  tile: string;
-  isPeasantPromoted: boolean;
-}
-
-export interface CaptureUnitResult {
-  selectedUnit: string;
-  selectedUnitNewTile: string;
-  capturedUnit: string;
-  isPeasantPromoted: boolean;
-}
-
-export interface EnPassantResult {
-  peasant: string;
-  capturedPeasant: string;
-  enPassantTile: string;
-}
-
-// selectedUnit: data.selectedUnit,
-// selectedUnitNewTile: Tile.CreateTileId(
-//   selectedUnit.row,
-//   selectedUnit.column
-// ),
-// capturedUnit: data.capturingUnit,

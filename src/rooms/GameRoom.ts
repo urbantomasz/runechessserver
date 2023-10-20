@@ -1,20 +1,7 @@
 import { Room, Client } from "colyseus";
-import { Color, CommandType } from "../runechess/Enums";
+import { Color, GameState } from "../runechess/Enums";
 import { Game } from "../runechess/Game";
 import { IGame } from "../runechess/IGame";
-import { PowerStomp } from "../runechess/Spell";
-import { Tile } from "../runechess/Tile";
-import { Knight, Peasant, Princess, Rogue, Unit } from "../runechess/Unit";
-import { Position } from "../runechess/Position";
-import {
-  UnitDTO,
-  TileDTO,
-  AvailableMovesDTO,
-  AvailableCastsDTO,
-  UnitTargetDTO,
-} from "../runechess/DTOs";
-import { AvailableMoves } from "../runechess/Validator";
-import { AvailableCasts } from "../runechess/SpellManager";
 import {
   CaptureCommand,
   MoveCommand,
@@ -45,21 +32,21 @@ export class GameRoom extends Room {
 
   private updateState() {
     try {
-      let playerTurnColor = this._game.GetPlayerTurnColor();
+      let playerTurnColor = this._game.State.PlayerTurnColor;
 
-      if (this._game.IsMate()) {
+      if (this._game.State.GameState == GameState.IsMate) {
         this.endGame(playerTurnColor === 0 ? 1 : 0, "Mate");
       }
 
-      if (this._game.IsStalemate()) {
+      if (this._game.State.GameState == GameState.IsStalemate) {
         this.endGame(null, "Stalemate");
       }
 
-      if (this._game.Is50MoveRule()) {
+      if (this._game.State.GameState == GameState.Is50MoveRule) {
         this.endGame(null, "50 Move Rule");
       }
 
-      if (this._game.IsInsufficientMaterial()) {
+      if (this._game.State.GameState == GameState.IsInsufficientMaterial) {
         this.endGame(null, "Insufficient Material");
       }
 
@@ -81,25 +68,13 @@ export class GameRoom extends Room {
   }
 
   private getGameStateData(): any {
-    return {
-      Units: this._game.Units.map((x) => new UnitDTO(x)),
-      Tiles: this._game.Tiles.flat().map((x) => new TileDTO(x)),
-      AvailableMoves: JSON.stringify(
-        Array.from(mapMovesToDTO(this._game.UnitsAvailableMoves).entries())
-      ),
-      AvailableCasts: JSON.stringify(
-        Array.from(mapCastsToDTO(this._game.UnitsAvailableCasts).entries())
-      ),
-      IsCheck: this._game.IsCheck(),
-      IsMate: this._game.IsMate(),
-      Moves: this._game.Moves.map((x) => x.toNotationString()),
+    return Object.assign({}, this._game.State, {
       BluePlayerRemainingTime: this._bluePlayerRemainingTime,
       RedPlayerRemainingTime: this._redPlayerRemainingTime,
       BluePlayerName: this._bluePlayerName,
       RedPlayerName: this._redPlayerName,
-      PlayerTurnColor: this._game.GetPlayerTurnColor(),
       IsPlayground: this._isPlayground,
-    };
+    });
   }
 
   private makeBotMove() {
@@ -180,48 +155,14 @@ export class GameRoom extends Room {
     this.clock.start();
 
     this.onMessage("TryMoveUnit", (client, data: TryMoveUnitData) => {
-      // if (
-      //   !this._isPlayground &&
-      //   !(
-      //     this._idMapping[client.id] ===
-      //     (this._game.GetPlayerTurnColor() === Color.Blue
-      //       ? this._bluePlayerId
-      //       : this._redPlayerId)
-      //   )
-      // ) {
-      //   return;
-      // }
-
       this.tryMoveUnit(data);
     });
 
     this.onMessage("TryCaptureUnit", (client, data: TryCaptureUnitData) => {
-      //   if (
-      //     !this._isPlayground &&
-      //     !(
-      //       this._idMapping[client.id] ===
-      //       (this._game.GetPlayerTurnColor() === Color.Blue
-      //         ? this._bluePlayerId
-      //         : this._redPlayerId)
-      //     )
-      //   ) {
-      //     return;
-      //   }
       this.tryCaptureUnit(data);
     });
 
     this.onMessage("TryCastingSpell", (client, data: TryCastingSpellData) => {
-      // if (
-      //   !this._isPlayground &&
-      //   !(
-      //     this._idMapping[client.id] ===
-      //     (this._game.GetPlayerTurnColor() === Color.Blue
-      //       ? this._bluePlayerId
-      //       : this._redPlayerId)
-      //   )
-      // ) {
-      //   return;
-      // }
       this.tryCastingSpell(data);
     });
 
@@ -277,78 +218,17 @@ export class GameRoom extends Room {
   }
 
   private tryCastingSpell(data: TryCastingSpellData) {
-    //console.log("try casting spell game")
+    const result = this._game.TryCastingSpell(
+      data.castingUnit,
+      data.targetingObject
+    );
 
-    const castingUnit = this._game.GetGameObjectById(data.castingUnit) as Unit;
-
-    if (castingUnit instanceof Knight) {
-      const unitSpell = this._game.Spells.get(castingUnit) as PowerStomp;
-      const targetingTile = this._game.GetGameObjectById(
-        data.targetingObject
-      ) as Tile;
-      let unitTileMap = new Map<string, string>();
-      unitSpell._tilesBehindMap.get(targetingTile).forEach((v, k) => {
-        unitTileMap.set(k.id, Tile.CreateTileId(v.row, v.column));
-      });
-      let unitTileMapStringifed = JSON.stringify(
-        Array.from(unitTileMap.entries())
-      );
-      if (this._game.TryCastingSpell(data.castingUnit, data.targetingObject)) {
-        this.broadcast("SpellCasted", {
-          castingUnit: data.castingUnit,
-          targetingTile: data.targetingObject,
-          unitTileMap: unitTileMapStringifed,
-        });
-      }
-    } else if (castingUnit instanceof Princess) {
-      if (this._game.TryCastingSpell(data.castingUnit, data.targetingObject)) {
-        const castingUnit = this._game.GetGameObjectById(data.castingUnit);
-        const targetingUnit = this._game.GetGameObjectById(
-          data.targetingObject
-        );
-        this.broadcast("SpellCasted", {
-          castingUnit: data.castingUnit,
-          castingUnitNewTile: Tile.CreateTileId(
-            castingUnit.row,
-            castingUnit.column
-          ),
-          targetingUnit: data.targetingObject,
-          targetingUnitNewTile: Tile.CreateTileId(
-            targetingUnit.row,
-            targetingUnit.column
-          ),
-        });
-      }
-    } else if (castingUnit instanceof Rogue) {
-      if (this._game.TryCastingSpell(data.castingUnit, data.targetingObject)) {
-        const castingUnit = this._game.GetGameObjectById(data.castingUnit);
-        const targetingUnit = this._game.GetGameObjectById(
-          data.targetingObject
-        );
-        this.broadcast("SpellCasted", {
-          castingUnit: data.castingUnit,
-          castingUnitNewTile: Tile.CreateTileId(
-            castingUnit.row,
-            castingUnit.column
-          ),
-          targetingUnit: data.targetingObject,
-          targetingUnitNewTile: Tile.CreateTileId(
-            targetingUnit.row,
-            targetingUnit.column
-          ),
-        });
-      }
-    } else {
-      if (this._game.TryCastingSpell(data.castingUnit, data.targetingObject)) {
-        this.broadcast("SpellCasted", {
-          castingUnit: data.castingUnit,
-          targetingUnit: data.targetingObject,
-        });
-      }
+    if (result) {
+      this.broadcast("SpellCasted", result);
     }
+
     this.updateState();
   }
-
   endGame = (winnerColor: number, reason: string) => {
     var winnerName = "";
     var winnerFlag = winnerColor === Color.Blue ? true : false;
@@ -394,41 +274,4 @@ export interface TryCaptureUnitData {
 export interface TryCastingSpellData {
   castingUnit: string;
   targetingObject: string;
-}
-
-function mapMovesToDTO(
-  availableMovesMap: Map<Unit, AvailableMoves>
-): Map<string, AvailableMovesDTO> {
-  const availableMovesDTO = new Map<string, AvailableMovesDTO>();
-
-  for (const [key, value] of availableMovesMap) {
-    let availableMoves = new AvailableMovesDTO();
-    availableMoves.Tiles = value.Tiles.map((x) => x.id);
-    availableMoves.Units = value.Units.map((x) => x.id);
-    // availableMoves.Units = value.Units.map((x) => {
-    //   var unitTargetDTO = {} as UnitTargetDTO;
-    //   unitTargetDTO.Id = x.id;
-    //   unitTargetDTO.IsEnPassant =
-    //     x instanceof Peasant && x.isEnPassant ? true : false;
-    //   return unitTargetDTO;
-    // });
-    availableMoves.EnPassant = value.EnPassant?.id;
-    availableMovesDTO.set(key.id, availableMoves);
-  }
-
-  return availableMovesDTO;
-}
-
-function mapCastsToDTO(
-  availableCastsMap: Map<Unit, AvailableCasts>
-): Map<string, AvailableCastsDTO> {
-  const availableCastsDTO = new Map<string, AvailableCastsDTO>();
-
-  for (const [key, value] of availableCastsMap) {
-    let availableCasts = new AvailableCastsDTO();
-    availableCasts.Targets = value.Targets.map((x) => x.id);
-    availableCastsDTO.set(key.id, availableCasts);
-  }
-
-  return availableCastsDTO;
 }

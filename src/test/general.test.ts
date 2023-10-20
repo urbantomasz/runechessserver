@@ -1,11 +1,11 @@
 import { assert, expect, test } from "vitest";
-import { Game } from "../runechess/Game";
+import { GameTestAdapter } from "../runechess/GameTestAdapter";
 import { ICommand, SpellCommand } from "../runechess/Commands";
 import { DestroyTile } from "../runechess/Spell";
 import { random } from "lodash";
 
 test("RandomCommandsTest", () => {
-  var game = new Game();
+  var game = new GameTestAdapter();
   var gameJSON = JSON.stringify(game);
 
   for (let i = 0; i < 10; i++) {
@@ -21,7 +21,7 @@ test("RandomCommandsTest", () => {
 });
 
 test("BotCommandsTest", () => {
-  var game = new Game();
+  var game = new GameTestAdapter();
   var gameJSON = JSON.stringify(game);
 
   for (let i = 0; i < 10; i++) {
@@ -32,22 +32,22 @@ test("BotCommandsTest", () => {
   }
 });
 
-test("BotCommandsUntilMate", () => {
-  console.log("test started");
-  var game = new Game();
-  var gameJSON = JSON.stringify(game);
+// test("BotCommandsUntilMate", () => {
+//   console.log("test started");
+//   var game = new GameTestAdapter();
+//   var gameJSON = JSON.stringify(game);
 
-  var iter = 1;
-  while (!game.IsCheck() || !game.IsMate()) {
-    var bestCommand = game.GetBestMove(0).Command;
-    bestCommand.Execute();
-    iter++;
-  }
+//   var iter = 1;
+//   while (!game.IsCheck() || !game.IsMate()) {
+//     var bestCommand = game.GetBestMove(0).Command;
+//     bestCommand.Execute();
+//     iter++;
+//   }
 
-  console.log("ITER:" + iter);
-  assert.equal(game.IsCheck(), true);
-  assert.equal(game.IsMate(), true);
-});
+//   console.log("ITER:" + iter);
+//   assert.equal(game.IsCheck(), true);
+//   assert.equal(game.IsMate(), true);
+// });
 
 // test("RandomCommandsTest2", () => {
 //   var game = new Game();

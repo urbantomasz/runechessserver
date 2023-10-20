@@ -36,6 +36,8 @@ export class TurnFinishedCommand implements ICommand {
   private _previousIsMate: boolean;
   private _previousIsSpellCheck: boolean;
   private _previousIsSpellMate: boolean;
+  private _previousIs50MoveRule: boolean;
+  private _previousIsInsufficientMaterial: boolean;
 
   constructor(
     stateManager: StateManager,
@@ -52,20 +54,27 @@ export class TurnFinishedCommand implements ICommand {
     this._previousIsMate = validator.IsMate;
     this._previousIsSpellCheck = spellManager.IsSpellCheck;
     this._previousIsSpellMate = spellManager.IsSpellMate;
+    this._previousIs50MoveRule = stateManager.Is50MoveRule;
+    this._previousIsInsufficientMaterial = stateManager.IsInsufficientMaterial;
   }
   Execute(): void {
     this._stateManager.SwapPlayerTurnColor();
+    this._stateManager.UpdateIs50MoveRule();
+    this._stateManager.UpdateInsufficientMaterial();
     this._validator.UpdateUnitsAvailableMoves();
     this._spellManager.UpdateUnitsAvailableCasts();
   }
   Undo(): void {
     this._stateManager.PlayerTurnColor = this._previousPlayercolor;
+    this._stateManager.Is50MoveRule = this._previousIs50MoveRule;
+    this._stateManager.IsInsufficientMaterial = this._previousIsInsufficientMaterial;
     this._validator.UnitsAvailableMoves = this._previousUnitsAvailableMoves;
     this._validator.IsCheck = this._previousIsCheck;
     this._validator.IsMate = this._previousIsMate;
     this._spellManager.UnitsAvailableCasts = this._previousUnitsAvailableCasts;
     this._spellManager.IsSpellCheck = this._previousIsSpellCheck;
     this._spellManager.IsSpellMate = this._previousIsSpellMate;
+
   }
 }
 

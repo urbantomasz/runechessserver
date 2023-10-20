@@ -1,6 +1,16 @@
-import { UnitType } from "./Enums";
+import { Color, GameState, UnitType } from "./Enums";
 import { Tile } from "./Tile";
 import { Peasant, Unit } from "./Unit";
+
+export class GameStateDTO {
+  Units: UnitDTO[];
+  Tiles: TileDTO[];
+  UnitsAvailableMoves: Map<UnitID, AvailableMovesDTO>;
+  UnitsAvailableCasts: Map<UnitID, AvailableCastsDTO>;
+  Moves: string[];
+  PlayerTurnColor: Color;
+  GameState: GameState;
+}
 
 export class TileDTO {
   constructor(tile: Tile) {
