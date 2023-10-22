@@ -7,7 +7,8 @@ import {
   MoveCommand,
   SpellCommand,
 } from "../runechess/Commands";
-import { GameStateDTO } from "../runechess/DTOs";
+import { GameStateDTO, TileDTO, UnitDTO } from "../runechess/DTOs";
+import { StringNullableChain } from "lodash";
 
 const dbConnection = require("./../dbConnection");
 
@@ -69,21 +70,23 @@ export class GameRoom extends Room {
   }
 
   private getGameStateData(): GameRoomGameState {
-    console.log("GetGameStateData");
-    //console.log(this._game.State.UnitsAvailableMoves);
 
-    const gameStateObject = Object.assign({}, this._game.State, {
+    const { UnitsAvailableCasts, UnitsAvailableMoves, ...restOfState } = this._game.State;
+
+    const gameStateObject: GameRoomGameState = {
+      ...restOfState,  // This spread operation copies all properties from restOfState to gameStateObject
+      UnitsAvailableCasts: JSON.stringify(UnitsAvailableCasts),
+      UnitsAvailableMoves: JSON.stringify(UnitsAvailableMoves),
       BluePlayerRemainingTime: this._bluePlayerRemainingTime,
       RedPlayerRemainingTime: this._redPlayerRemainingTime,
       BluePlayerName: this._bluePlayerName,
       RedPlayerName: this._redPlayerName,
       IsPlayground: this._isPlayground,
-    }) as GameRoomGameState;
-
-    console.log(gameStateObject.UnitsAvailableMoves);
+    };
 
     return gameStateObject;
-  }
+}
+
 
   private makeBotMove() {
     const bestMove = this._game.GetBestMove(0);
@@ -284,7 +287,14 @@ export interface TryCastingSpellData {
   targetingObject: string;
 }
 
-export interface GameRoomGameState extends GameStateDTO {
+export interface GameRoomGameState{
+  Units: UnitDTO[];
+  Tiles: TileDTO[];
+  Moves: string[];
+  PlayerTurnColor: Color;
+  GameState: GameState;
+  UnitsAvailableCasts: string;
+  UnitsAvailableMoves: string;
   BluePlayerRemainingTime: number;
   RedPlayerRemainingTime: number;
   BluePlayerName: string;
