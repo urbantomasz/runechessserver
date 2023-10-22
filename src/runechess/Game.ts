@@ -22,7 +22,6 @@ import {
 export class Game implements IGame {
   public static BOARD_ROWS = 8;
   public static BOARD_COLUMNS = 9;
-  public readonly State: GameStateDTO;
   protected readonly _players: Player[];
   protected readonly _validator: Validator;
   protected readonly _stateManager: StateManager;
@@ -49,7 +48,7 @@ export class Game implements IGame {
     }
   }
 
-  public get GameState(): GameStateDTO {
+  public get State(): GameStateDTO {
     const gameState = new GameStateDTO();
 
     gameState.Units = Mapper.MapUnitsToDTO(this._stateManager.Units);
@@ -59,14 +58,21 @@ export class Game implements IGame {
         this._stateManager.PlayerTurnColor
       )
     );
+
+    // console.log(gameState.UnitsAvailableMoves);
+
     gameState.UnitsAvailableCasts = Mapper.MapCastsToDTO(
       this._spellManager.GetUnitsAvailableCastsByPlayerColor(
         this._stateManager.PlayerTurnColor
       )
     );
+
+    // console.log(gameState.UnitsAvailableCasts);
+
     gameState.Moves = [];
     gameState.PlayerTurnColor = this._stateManager.PlayerTurnColor;
     gameState.GameState = this._stateManager.State;
+
     return gameState;
   }
 

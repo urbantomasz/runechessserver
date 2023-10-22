@@ -7,6 +7,7 @@ import {
   MoveCommand,
   SpellCommand,
 } from "../runechess/Commands";
+import { GameStateDTO } from "../runechess/DTOs";
 
 const dbConnection = require("./../dbConnection");
 
@@ -34,19 +35,19 @@ export class GameRoom extends Room {
     try {
       let playerTurnColor = this._game.State.PlayerTurnColor;
 
-      if (this._game.State.GameState == GameState.IsMate) {
+      if (this._game.State.GameState == GameState.CheckMate) {
         this.endGame(playerTurnColor === 0 ? 1 : 0, "Mate");
       }
 
-      if (this._game.State.GameState == GameState.IsStalemate) {
+      if (this._game.State.GameState == GameState.Stalemate) {
         this.endGame(null, "Stalemate");
       }
 
-      if (this._game.State.GameState == GameState.Is50MoveRule) {
+      if (this._game.State.GameState == GameState.MaxMoveRule) {
         this.endGame(null, "50 Move Rule");
       }
 
-      if (this._game.State.GameState == GameState.IsInsufficientMaterial) {
+      if (this._game.State.GameState == GameState.InsufficientMaterial) {
         this.endGame(null, "Insufficient Material");
       }
 
@@ -67,14 +68,21 @@ export class GameRoom extends Room {
     }
   }
 
-  private getGameStateData(): any {
-    return Object.assign({}, this._game.State, {
+  private getGameStateData(): GameRoomGameState {
+    console.log("GetGameStateData");
+    //console.log(this._game.State.UnitsAvailableMoves);
+
+    const gameStateObject = Object.assign({}, this._game.State, {
       BluePlayerRemainingTime: this._bluePlayerRemainingTime,
       RedPlayerRemainingTime: this._redPlayerRemainingTime,
       BluePlayerName: this._bluePlayerName,
       RedPlayerName: this._redPlayerName,
       IsPlayground: this._isPlayground,
-    });
+    }) as GameRoomGameState;
+
+    console.log(gameStateObject.UnitsAvailableMoves);
+
+    return gameStateObject;
   }
 
   private makeBotMove() {
@@ -248,12 +256,12 @@ export class GameRoom extends Room {
       redPlayerName: this._redPlayerName,
     });
 
-    dbConnection.insertMatch(
-      new Date(Date.now()),
-      this._bluePlayerId,
-      this._redPlayerId,
-      winnerFlag
-    );
+    // dbConnection.insertMatch(
+    //   new Date(Date.now()),
+    //   this._bluePlayerId,
+    //   this._redPlayerId,
+    //   winnerFlag
+    // );
 
     this._isGameOver = true; // set game over flag to true
 
@@ -274,4 +282,12 @@ export interface TryCaptureUnitData {
 export interface TryCastingSpellData {
   castingUnit: string;
   targetingObject: string;
+}
+
+export interface GameRoomGameState extends GameStateDTO {
+  BluePlayerRemainingTime: number;
+  RedPlayerRemainingTime: number;
+  BluePlayerName: string;
+  RedPlayerName: string;
+  IsPlayground: boolean;
 }
