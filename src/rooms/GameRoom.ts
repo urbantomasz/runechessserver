@@ -70,13 +70,13 @@ export class GameRoom extends Room {
   }
 
   private getGameStateData(): GameRoomGameState {
-
-    const { UnitsAvailableCasts, UnitsAvailableMoves, ...restOfState } = this._game.State;
+    const { UnitsAvailableCasts, UnitsAvailableMoves, ...restOfState } =
+      this._game.State;
 
     const gameStateObject: GameRoomGameState = {
-      ...restOfState,  // This spread operation copies all properties from restOfState to gameStateObject
-      UnitsAvailableCasts: JSON.stringify(UnitsAvailableCasts),
-      UnitsAvailableMoves: JSON.stringify(UnitsAvailableMoves),
+      ...restOfState, // This spread operation copies all properties from restOfState to gameStateObject
+      UnitsAvailableCasts: JSON.stringify(Array.from(UnitsAvailableCasts)),
+      UnitsAvailableMoves: JSON.stringify(Array.from(UnitsAvailableMoves)),
       BluePlayerRemainingTime: this._bluePlayerRemainingTime,
       RedPlayerRemainingTime: this._redPlayerRemainingTime,
       BluePlayerName: this._bluePlayerName,
@@ -85,8 +85,7 @@ export class GameRoom extends Room {
     };
 
     return gameStateObject;
-}
-
+  }
 
   private makeBotMove() {
     const bestMove = this._game.GetBestMove(0);
@@ -287,7 +286,7 @@ export interface TryCastingSpellData {
   targetingObject: string;
 }
 
-export interface GameRoomGameState{
+export interface GameRoomGameState {
   Units: UnitDTO[];
   Tiles: TileDTO[];
   Moves: string[];
