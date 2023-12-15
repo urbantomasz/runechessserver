@@ -92,44 +92,39 @@ export class StateManager {
     return this._is50MoveRule;
   }
 
-  public get State(): GameState{
+  public get State(): GameState {
     var state = GameState.Ongoing;
-    if(this.IsStaleMate)
-     state = GameState.Stalemate
-    if(this.IsCheck)
-      state = GameState.Check;
-    if(this.IsMate)
-      state = GameState.CheckMate
-    if(this.Is50MoveRule)
-      state = GameState.MaxMoveRule
-    if(this.IsInsufficientMaterial)
-     state = GameState.InsufficientMaterial
+    if (this.IsStaleMate) state = GameState.Stalemate;
+    if (this.IsCheck) state = GameState.Check;
+    if (this.IsMate) state = GameState.CheckMate;
+    if (this.Is50MoveRule) state = GameState.MaxMoveRule;
+    if (this.IsInsufficientMaterial) state = GameState.InsufficientMaterial;
     return state;
   }
 
   public UpdateInsufficientMaterial(): void {
-    this._isInsufficientMaterial = this.Units.filter((u) => !u.isCaptured).every(
-      (u) => u instanceof Princess
-    );
+    this._isInsufficientMaterial = this.Units.filter(
+      (u) => !u.isCaptured
+    ).every((u) => u instanceof Princess);
   }
 
-  public get IsInsufficientMaterial(): boolean{
+  public get IsInsufficientMaterial(): boolean {
     return this._isInsufficientMaterial;
   }
 
-  public set IsInsufficientMaterial(isInsufficientMaterial: boolean){
+  public set IsInsufficientMaterial(isInsufficientMaterial: boolean) {
     this._isInsufficientMaterial = isInsufficientMaterial;
   }
 
-  public UpdateIs50MoveRule(): void{
-    if (this._commands.length < 50){
+  public UpdateIs50MoveRule(): void {
+    if (this._commands.length < 50) {
       this._is50MoveRule = false;
       return;
     }
 
     // Check the last 50 moves for a capture
     for (let i = this._commands.length - 50; i < this._commands.length; i++) {
-      if (this._commands[i] instanceof CaptureCommand){
+      if (this._commands[i] instanceof CaptureCommand) {
         this._is50MoveRule = false;
         return;
       } // or check some other condition
@@ -313,7 +308,7 @@ export class StateManager {
     command: TargetCommand | null = null,
     isEnPassant: boolean = false
   ): TurnFinishedCommand {
-    console.log(command);
+    //console.log(command);
     if (command !== null) {
       this._commands.push(command);
     }

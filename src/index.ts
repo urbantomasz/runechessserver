@@ -27,7 +27,7 @@ import { BotRoom } from "./rooms/BotRoom";
 const app = express();
 const cors = require("cors");
 const PORT = parseInt(process.env.PORT) || 2537;
-const dbConnection = require("./dbConnection");
+//const dbConnection = require("./dbConnection");
 
 app.use("/colyseus", monitor());
 app.use(
@@ -35,29 +35,29 @@ app.use(
     origin: ORIGIN,
   })
 );
-app.get("/", function (req: Request, res: Response) {
-  res.send("200 OK - Dino Fun Land");
-});
+// app.get("/", function (req: Request, res: Response) {
+//   res.send("200 OK - Dino Fun Land");
+// });
 
-app.get("/api/matches", async (req: Request, res: Response) => {
-  try {
-    const matches = await dbConnection.getMatches();
-    res.json(matches);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to fetch matches" });
-  }
-});
+// app.get("/api/matches", async (req: Request, res: Response) => {
+//   try {
+//     const matches = await dbConnection.getMatches();
+//     res.json(matches);
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ error: "Failed to fetch matches" });
+//   }
+// });
 
-app.get("/api/ranking", async (req: Request, res: Response) => {
-  try {
-    const ranking = await dbConnection.getRanking();
-    res.json(ranking);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to fetch ranking" });
-  }
-});
+// app.get("/api/ranking", async (req: Request, res: Response) => {
+//   try {
+//     const ranking = await dbConnection.getRanking();
+//     res.json(ranking);
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ error: "Failed to fetch ranking" });
+//   }
+// });
 
 const gameServer = new Server({
   transport: new WebSocketTransport({

@@ -1,4 +1,4 @@
-import { Room, Client } from "colyseus";
+import { Room, Client, Delayed, Clock } from "colyseus";
 import { Color, GameState } from "../runechess/Enums";
 import { Game } from "../runechess/Game";
 import { IGame } from "../runechess/IGame";
@@ -9,9 +9,11 @@ import {
 } from "../runechess/Commands";
 import { GameStateDTO, TileDTO, UnitDTO } from "../runechess/DTOs";
 import { StringNullableChain } from "lodash";
+import { PlayerTimer } from "../classes/PlayerTimer";
 
 const dbConnection = require("./../dbConnection");
-
+const INITIAL_PLAYER_TIME = 10 * 60 * 1000;
+//const INITIAL_PLAYER_TIME = 1000;
 export class GameRoom extends Room {
   private _game: IGame;
   private _isGameOver: boolean = false;
@@ -20,10 +22,13 @@ export class GameRoom extends Room {
   private _bluePlayerId: number = null;
   private _redPlayerId: number = null;
   private _isPlayground: boolean = false;
-  private _redPlayerRemainingTime = 10 * 60 * 1000;
-  private _bluePlayerRemainingTime = 10 * 60 * 1000;
   private _isVersusBot: any;
   private _idMapping: Map<string, number> = new Map<string, number>();
+  private _redPlayerTimeLeft = INITIAL_PLAYER_TIME;
+  private _bluePlayerTimeLeft = INITIAL_PLAYER_TIME;
+  private timerInterval: any = null; // Interval reference
+  // Initialize the interval but don't start it yet
+
   /**
    *
    */
@@ -32,36 +37,66 @@ export class GameRoom extends Room {
     this._game = new Game();
   }
 
+  private startTimer(playerTurnColor: Color) {
+    // Clear any existing timer
+    if (this.timerInterval) {
+      this.clock.clear();
+    }
+
+    // Start the timer for the current player
+    this.timerInterval = this.clock.setInterval(() => {
+      if (playerTurnColor === Color.Blue) {
+        this._bluePlayerTimeLeft -= 1000;
+        if (this._bluePlayerTimeLeft <= 0) {
+          this.checkGameOver();
+        }
+      } else {
+        this._redPlayerTimeLeft -= 1000;
+        if (this._redPlayerTimeLeft <= 0) {
+          this.checkGameOver();
+        }
+      }
+    }, 1000); // Update every second
+  }
+
+  private checkGameOver() {
+    if (this._bluePlayerTimeLeft <= 0) {
+      this.broadcast("GameOver", { winner: Color.Red });
+      this._isGameOver = true;
+    } else if (this._redPlayerTimeLeft <= 0) {
+      this.broadcast("GameOver", { winner: Color.Blue });
+      this._isGameOver = true;
+    }
+  }
+
+  private checkGameState() {
+    let playerTurnColor = this._game.State.PlayerTurnColor;
+    if (this._game.State.GameState == GameState.CheckMate) {
+      this.endGame(playerTurnColor === 0 ? 1 : 0, "Mate");
+    } else if (this._game.State.GameState == GameState.Stalemate) {
+      this.endGame(null, "Stalemate");
+    } else if (this._game.State.GameState == GameState.MaxMoveRule) {
+      this.endGame(null, "50 Move Rule");
+    } else if (this._game.State.GameState == GameState.InsufficientMaterial) {
+      this.endGame(null, "Insufficient Material");
+    }
+  }
+
+  private makeBotMoveIfNecessary() {
+    let playerTurnColor = this._game.State.PlayerTurnColor;
+    if (this._isVersusBot && playerTurnColor !== Color.Blue) {
+      setTimeout(() => this.makeBotMove(), 1000);
+    }
+  }
+
   private updateState() {
     try {
       let playerTurnColor = this._game.State.PlayerTurnColor;
-
-      if (this._game.State.GameState == GameState.CheckMate) {
-        this.endGame(playerTurnColor === 0 ? 1 : 0, "Mate");
-      }
-
-      if (this._game.State.GameState == GameState.Stalemate) {
-        this.endGame(null, "Stalemate");
-      }
-
-      if (this._game.State.GameState == GameState.MaxMoveRule) {
-        this.endGame(null, "50 Move Rule");
-      }
-
-      if (this._game.State.GameState == GameState.InsufficientMaterial) {
-        this.endGame(null, "Insufficient Material");
-      }
-
+      this.startTimer(playerTurnColor);
+      this.checkGameOver();
       if (this._isGameOver) return;
-
-      if (this._isVersusBot && playerTurnColor !== Color.Blue) {
-        setTimeout(() => this.makeBotMove(), 1000);
-      }
-
-      // if (this._isVersusBot && playerTurnColor !== Color.Red) {
-      //   setTimeout(() => this.makeBotMove(), 100);
-      // }
-
+      this.checkGameState();
+      this.makeBotMoveIfNecessary();
       this.broadcast("StateChange", this.getGameStateData());
     } catch (error) {
       console.log(error);
@@ -77,8 +112,8 @@ export class GameRoom extends Room {
       ...restOfState, // This spread operation copies all properties from restOfState to gameStateObject
       UnitsAvailableCasts: JSON.stringify(Array.from(UnitsAvailableCasts)),
       UnitsAvailableMoves: JSON.stringify(Array.from(UnitsAvailableMoves)),
-      BluePlayerRemainingTime: this._bluePlayerRemainingTime,
-      RedPlayerRemainingTime: this._redPlayerRemainingTime,
+      BluePlayerRemainingTime: this._bluePlayerTimeLeft,
+      RedPlayerRemainingTime: this._redPlayerTimeLeft,
       BluePlayerName: this._bluePlayerName,
       RedPlayerName: this._redPlayerName,
       IsPlayground: this._isPlayground,
