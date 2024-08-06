@@ -26,6 +26,7 @@ export class GameRoom extends Room {
   private _idMapping: Map<string, number> = new Map<string, number>();
   private _redPlayerTimeLeft = INITIAL_PLAYER_TIME;
   private _bluePlayerTimeLeft = INITIAL_PLAYER_TIME;
+  private _isFirstMove: boolean = true;
   private timerInterval: any = null; // Interval reference
   // Initialize the interval but don't start it yet
 
@@ -38,6 +39,12 @@ export class GameRoom extends Room {
   }
 
   private startTimer(playerTurnColor: Color) {
+
+    if(this._isFirstMove){
+      this._isFirstMove = false;
+      return;
+    }
+
     // Clear any existing timer
     if (this.timerInterval) {
       this.clock.clear();
@@ -56,7 +63,7 @@ export class GameRoom extends Room {
           this.checkGameOver();
         }
       }
-    }, 1000); // Update every second
+    }, 1000); 
   }
 
   private checkGameOver() {
@@ -117,6 +124,7 @@ export class GameRoom extends Room {
       BluePlayerName: this._bluePlayerName,
       RedPlayerName: this._redPlayerName,
       IsPlayground: this._isPlayground,
+      IsFirstMove: this._isFirstMove,
     };
 
     return gameStateObject;
@@ -334,4 +342,5 @@ export interface GameRoomGameState {
   BluePlayerName: string;
   RedPlayerName: string;
   IsPlayground: boolean;
+  IsFirstMove: boolean;
 }
